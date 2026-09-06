@@ -1,0 +1,51 @@
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Environment secrets - NEVER bake .env into Docker images
+.env
+.env.*
+.env.backup
+.env.production
+!.env.example
+
+# Local dependency directories
+/node_modules
+/vendor
+
+# Laravel runtime files and local logs
+/storage/*.key
+/storage/pail
+/storage/logs/*
+/storage/framework/cache/*
+/storage/framework/sessions/*
+/storage/framework/views/*
+/bootstrap/cache/*
+
+# Frontend build cache and local hot file
+/public/hot
+/public/storage
+
+# Testing & development artifacts
+/tests
+phpunit.xml
+.phpunit.result.cache
+.phpunit.cache
+
+# IDE and OS files
+.DS_Store
+Thumbs.db
+/.fleet
+/.idea
+/.nova
+/.vscode
+/.zed
+.editorconfig
+Homestead.json
+Homestead.yaml
+/auth.json
+
+# Scratch and documentation
+README.md
+scratch/
