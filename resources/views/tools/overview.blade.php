@@ -1,0 +1,340 @@
+<!-- Studio Overview Experience -->
+<div class="studio-overview-container">
+    <!-- 1. Two-Column Hero Composition -->
+    <section class="studio-hero-section">
+        <!-- Hero Ambient Glow Behind -->
+        <div class="studio-hero-glow"></div>
+
+        <div class="studio-hero-grid">
+            <!-- Left Side: Brand Identity & Messaging -->
+            <div class="studio-hero-content">
+                @php
+                    $overviewBrandTitle = strtoupper(\App\Models\SiteSetting::get('site_title', 'IMGAI'));
+                    $overviewBrandTagline = strtoupper(\App\Models\SiteSetting::get('site_tagline', 'AI CREATIVE STUDIO'));
+                @endphp
+                <div class="studio-pill-badge">
+                    <span class="studio-pulse-dot"></span>
+                    <span class="studio-pill-text">{{ $overviewBrandTitle }} • {{ $overviewBrandTagline }}</span>
+                </div>
+
+                <h1 class="studio-hero-title">
+                    Create Beyond<br>
+                    <span class="studio-gradient-text">Imagination.</span>
+                </h1>
+
+                <p class="studio-hero-subtitle">
+                    Transform ideas into powerful visual content with intelligent creative tools. Synthesize photorealistic 2MP cinematic imagery and fluid motion video in one unified workspace.
+                </p>
+
+                <!-- Action CTAs -->
+                <div class="studio-hero-actions">
+                    <a href="{{ route('tools.image.index') }}" class="btn-studio-primary">
+                        <i data-lucide="sparkles" style="width: 18px; height: 18px;"></i>
+                        <span>Start Creating</span>
+                    </a>
+
+                    <a href="#creative-tools" class="btn-studio-secondary">
+                        <i data-lucide="layout-grid" style="width: 18px; height: 18px;"></i>
+                        <span>Explore Tools</span>
+                    </a>
+                </div>
+
+                <!-- Feature Highlights Bar -->
+                <div class="studio-hero-metrics">
+                    <div class="metric-item">
+                        <div class="metric-icon-wrap">
+                            <i data-lucide="aperture" style="width: 16px; height: 16px; color: var(--brand-cyan);"></i>
+                        </div>
+                        <div class="metric-text">
+                            <span class="metric-label">2MP Native Resolution</span>
+                            <span class="metric-sub">Wan 2.2 Cinematic Core</span>
+                        </div>
+                    </div>
+
+                    <div class="metric-divider"></div>
+
+                    <div class="metric-item">
+                        <div class="metric-icon-wrap">
+                            <i data-lucide="film" style="width: 16px; height: 16px; color: #c084fc;"></i>
+                        </div>
+                        <div class="metric-text">
+                            <span class="metric-label">Temporal Motion Engine</span>
+                            <span class="metric-sub">Hunyuan Diffusion 24 FPS</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            @php
+                $videoScale = (int) ($heroVideoScale ?? \App\Models\SiteSetting::get('hero_showcase_video_scale', 200));
+                // Base width was 420px. At 200% scale => 840px (approx 2x).
+                $calculatedMaxWidth = round(420 * ($videoScale / 100));
+            @endphp
+            <!-- Right Side: Cinematic Hero Video Area (Clean, borderless, frameless display) -->
+            <div class="studio-hero-media-wrapper" style="--hero-video-max-width: {{ $calculatedMaxWidth }}px; max-width: {{ $calculatedMaxWidth }}px; width: 100%; margin: 0 auto; background: transparent; border: none; box-shadow: none; display: flex; justify-content: center; align-items: center;">
+
+                <div class="hero-video-container" style="position: relative; overflow: visible; border: none; box-shadow: none; background: transparent; width: 100%; height: auto; margin: 0 auto; display: flex; justify-content: center; align-items: center;">
+                    
+                    @if (!empty($heroVideoUrl))
+                        <!-- Hero Showcase Video — Clean, frameless, 2x enlarged, preserving native aspect ratio -->
+                        <video 
+                            id="hero-showcase-video-elem"
+                            src="{{ $heroVideoUrl }}"
+                            autoplay 
+                            loop 
+                            muted 
+                            playsinline 
+                            preload="auto"
+                            class="hero-video-element" 
+                            style="display: block; width: 100%; height: auto; max-width: 100%; max-height: 85vh; object-fit: contain; position: relative; z-index: 2; border: none; background: transparent; box-shadow: none; border-radius: var(--radius-lg, 16px);"
+                            onerror="this.style.display='none'; document.getElementById('hero-video-fallback-canvas').style.display='flex';"
+                        >
+                            <source src="{{ $heroVideoUrl }}" type="video/mp4">
+                            <source src="{{ $heroVideoUrl }}" type="video/webm">
+                            <source src="{{ $heroVideoUrl }}" type="video/ogg">
+                        </video>
+                    @endif
+
+                    <!-- Atmospheric Procedural Canvas — only shown when NO video is present, or as error fallback -->
+                    <div id="hero-video-fallback-canvas" class="hero-video-atmospheric-canvas" style="position: {{ !empty($heroVideoUrl) ? 'absolute' : 'relative' }}; inset: 0; width: 100%; height: 100%; min-height: 220px; z-index: 1; pointer-events: none; display: {{ !empty($heroVideoUrl) ? 'none' : 'flex' }};">
+                        @if (empty($heroVideoUrl))
+                            <div class="atmospheric-mesh-grid"></div>
+                            <div class="atmospheric-light-orb orb-primary"></div>
+                            <div class="atmospheric-light-orb orb-secondary"></div>
+                            <div class="atmospheric-light-orb orb-accent"></div>
+                        @endif
+                        
+                        <!-- Subtle dark vignette overlay for fallback canvas only -->
+                        <div class="atmospheric-vignette" style="position: absolute; inset: 0; background: linear-gradient(180deg, rgba(7, 9, 14, 0.35) 0%, rgba(7, 9, 14, 0.1) 50%, rgba(7, 9, 14, 0.75) 100%), radial-gradient(circle at 50% 50%, transparent 40%, rgba(7, 9, 14, 0.6) 100%);"></div>
+
+                        <!-- Fallback Visual & Center Info for Canvas -->
+                        <div class="hero-video-top-bar" style="display: flex; align-items: center; justify-content: space-between; position: relative; z-index: 2; width: 100%;">
+                            <div class="video-status-chip" style="background: rgba(15, 20, 34, 0.8); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.12); padding: 5px 12px; border-radius: 9999px; font-size: 0.72rem; font-weight: 700; color: #38bdf8; display: inline-flex; align-items: center; gap: 6px; letter-spacing: 0.05em;">
+                                <span class="video-chip-dot" style="width: 6px; height: 6px; border-radius: 50%; background: #38bdf8; box-shadow: 0 0 8px #38bdf8;"></span>
+                                <span>CINEMATIC MOTION CORE</span>
+                            </div>
+                            <div class="video-resolution-tag" style="background: rgba(15, 20, 34, 0.8); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.12); padding: 5px 12px; border-radius: 9999px; font-size: 0.72rem; font-weight: 700; color: #cbd5e1; font-family: 'JetBrains Mono', monospace;">
+                                4K / 24 FPS READY
+                            </div>
+                        </div>
+
+                        <div class="hero-video-center-visual" style="text-align: center; margin: auto 0; position: relative; z-index: 2;">
+                            <div class="center-lens-ring" style="width: 56px; height: 56px; border-radius: 50%; background: rgba(99, 102, 241, 0.25); border: 1px solid rgba(99, 102, 241, 0.5); display: flex; align-items: center; justify-content: center; margin: 0 auto 12px; backdrop-filter: blur(8px); box-shadow: 0 0 25px rgba(99, 102, 241, 0.4);">
+                                <div class="lens-core-pulse"></div>
+                                <i data-lucide="sparkles" style="width: 26px; height: 26px; color: #ffffff;"></i>
+                            </div>
+                            <div class="center-lens-caption">
+                                <span class="caption-title" style="font-size: 1.15rem; font-weight: 800; color: #ffffff; text-shadow: 0 2px 12px rgba(0,0,0,0.85); display: block;">
+                                    {{ $heroVideoTitle ?? 'Neural Frame Synthesis' }}
+                                </span>
+                                <span class="caption-desc" style="font-size: 0.78rem; color: #cbd5e1; text-shadow: 0 1px 8px rgba(0,0,0,0.85); display: block; margin-top: 4px;">
+                                    {{ $heroVideoCaption ?? 'Spatial Diffusion • Volumetric Lighting • Temporal Consistency' }}
+                                </span>
+                            </div>
+                        </div>
+
+                        <div class="hero-video-bottom-bar" style="display: flex; align-items: center; justify-content: space-between; position: relative; z-index: 2; width: 100%;">
+                            <div class="video-info-group" style="display: flex; gap: 8px;">
+                                <span class="info-tag" style="background: rgba(10, 14, 26, 0.75); backdrop-filter: blur(8px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 6px; padding: 4px 10px; font-size: 0.72rem; font-weight: 700; color: #cbd5e1; font-family: 'JetBrains Mono', monospace;">WAN 2.2</span>
+                                <span class="info-tag" style="background: rgba(10, 14, 26, 0.75); backdrop-filter: blur(8px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 6px; padding: 4px 10px; font-size: 0.72rem; font-weight: 700; color: #cbd5e1; font-family: 'JetBrains Mono', monospace;">HUNYUAN-VIDEO</span>
+                                <span class="info-tag" style="background: rgba(10, 14, 26, 0.75); backdrop-filter: blur(8px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 6px; padding: 4px 10px; font-size: 0.72rem; font-weight: 700; color: #cbd5e1; font-family: 'JetBrains Mono', monospace;">DIRECT EXPORT</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 2. Creative Tools Section -->
+    <section id="creative-tools" class="studio-section">
+        <div class="studio-section-header">
+            <div class="studio-pill-badge">
+                <i data-lucide="layers" style="width: 14px; height: 14px;"></i>
+                <span class="studio-pill-text">CREATIVE SUITE</span>
+            </div>
+            <h2 class="studio-section-title">Intelligent Generation Tools</h2>
+            <p class="studio-section-desc">
+                Specialized neural generation models fine-tuned for professional visual storytelling and creative production.
+            </p>
+        </div>
+
+        <div class="studio-tools-grid">
+            <!-- Tool 1: Text to Image Generator -->
+            <div class="studio-tool-card">
+                <div class="tool-card-glow glow-cyan"></div>
+                <div class="tool-card-header">
+                    <div class="tool-card-icon-wrap icon-cyan">
+                        <i data-lucide="image" style="width: 24px; height: 24px;"></i>
+                    </div>
+                    <div class="tool-card-badge">Wan 2.2 Cinematic</div>
+                </div>
+
+                <div class="tool-card-body">
+                    <h3 class="tool-card-title">Text-to-Image Generator</h3>
+                    <p class="tool-card-desc">
+                        Synthesize stunning, photorealistic 2MP cinematic imagery from text descriptions with nuanced lighting, rich textural depth, and precise composition control.
+                    </p>
+
+                    <div class="tool-specs-list">
+                        <span class="spec-pill">2MP Ultra-HD</span>
+                        <span class="spec-pill">1:1, 16:9, 9:16, 4:3, 3:4</span>
+                        <span class="spec-pill">JPG, PNG, WEBP</span>
+                        <span class="spec-pill">Juiced Engine</span>
+                    </div>
+                </div>
+
+                <div class="tool-card-footer">
+                    <a href="{{ route('tools.image.index') }}" class="btn-tool-launch">
+                        <span>Open Image Generator</span>
+                        <i data-lucide="arrow-right" style="width: 16px; height: 16px;"></i>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Tool 2: Text to Video Generator -->
+            <div class="studio-tool-card">
+                <div class="tool-card-glow glow-purple"></div>
+                <div class="tool-card-header">
+                    <div class="tool-card-icon-wrap icon-purple">
+                        <i data-lucide="video" style="width: 24px; height: 24px;"></i>
+                    </div>
+                    <div class="tool-card-badge">Hunyuan-Video</div>
+                </div>
+
+                <div class="tool-card-body">
+                    <h3 class="tool-card-title">Text-to-Video Generator</h3>
+                    <p class="tool-card-desc">
+                        Generate fluid, temporal-consistent cinematic motion video sequences from text prompts with lifelike physical motion and professional camera dynamics.
+                    </p>
+
+                    <div class="tool-specs-list">
+                        <span class="spec-pill">24 FPS Motion</span>
+                        <span class="spec-pill">Temporal Diffusion</span>
+                        <span class="spec-pill">Custom Steps</span>
+                        <span class="spec-pill">MP4 Direct Export</span>
+                    </div>
+                </div>
+
+                <div class="tool-card-footer">
+                    <a href="{{ route('tools.video.index') }}" class="btn-tool-launch">
+                        <span>Open Video Generator</span>
+                        <i data-lucide="arrow-right" style="width: 16px; height: 16px;"></i>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Tool 3: Image to Video Generator -->
+            <div class="studio-tool-card">
+                <div class="tool-card-glow glow-pink" style="background: #ec4899;"></div>
+                <div class="tool-card-header">
+                    <div class="tool-card-icon-wrap" style="background: rgba(236, 72, 153, 0.12); border: 1px solid rgba(236, 72, 153, 0.3); color: #f472b6;">
+                        <i data-lucide="clapperboard" style="width: 24px; height: 24px;"></i>
+                    </div>
+                    <div class="tool-card-badge">Wan 2.2 I2V</div>
+                </div>
+
+                <div class="tool-card-body">
+                    <h3 class="tool-card-title">Image-to-Video Generator</h3>
+                    <p class="tool-card-desc">
+                        Bring static pictures to life. Upload source imagery to Cloudflare R2 and synthesize seamless motion videos matching your narrative.
+                    </p>
+
+                    <div class="tool-specs-list">
+                        <span class="spec-pill">720p & 480p</span>
+                        <span class="spec-pill">16:9 & 9:16</span>
+                        <span class="spec-pill">Cloudflare R2 Storage</span>
+                        <span class="spec-pill">24 FPS Cinema</span>
+                    </div>
+                </div>
+
+                <div class="tool-card-footer">
+                    <a href="{{ route('tools.image-to-video.index') }}" class="btn-tool-launch">
+                        <span>Open Image to Video</span>
+                        <i data-lucide="arrow-right" style="width: 16px; height: 16px;"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 3. Platform Introduction / About Pixora -->
+    <section class="studio-section">
+        <div class="studio-about-panel">
+            <div class="about-ambient-glow"></div>
+
+            <div class="about-content-header">
+                <div class="studio-pill-badge">
+                    <i data-lucide="shield-check" style="width: 14px; height: 14px;"></i>
+                    <span class="studio-pill-text">PLATFORM ARCHITECTURE</span>
+                </div>
+                <h2 class="studio-section-title">Built for Professional AI Creators</h2>
+                <p class="studio-section-desc">
+                    Pixora unites cutting-edge diffusion synthesis with a friction-free studio workflow. Everything you need to conceptualize, render, and manage digital creations.
+                </p>
+            </div>
+
+            <div class="about-pillars-grid">
+                <div class="pillar-card">
+                    <div class="pillar-icon">
+                        <i data-lucide="zap" style="width: 20px; height: 20px; color: var(--brand-cyan);"></i>
+                    </div>
+                    <h4 class="pillar-title">Sub-Second Dispatch</h4>
+                    <p class="pillar-desc">
+                        Instant queue orchestration communicates directly with high-throughput GPU clusters for rapid turnaround.
+                    </p>
+                </div>
+
+                <div class="pillar-card">
+                    <div class="pillar-icon">
+                        <i data-lucide="sparkles" style="width: 20px; height: 20px; color: #c084fc;"></i>
+                    </div>
+                    <h4 class="pillar-title">Photorealistic Detail</h4>
+                    <p class="pillar-desc">
+                        Wan 2.2 and Hunyuan neural models ensure fine micro-textures, authentic lighting, and coherent geometry.
+                    </p>
+                </div>
+
+                <div class="pillar-card">
+                    <div class="pillar-icon">
+                        <i data-lucide="folder-git-2" style="width: 20px; height: 20px; color: #f472b6;"></i>
+                    </div>
+                    <h4 class="pillar-title">Integrated Media Library</h4>
+                    <p class="pillar-desc">
+                        Every generation is automatically preserved in your private media library with one-click export and remixing.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 4. Visual Identity & Neural Engine Link -->
+    <section class="studio-section">
+        <div class="neural-identity-card">
+            <div class="identity-mesh-backdrop"></div>
+            <div class="identity-content">
+                <div class="identity-text">
+                    <div class="studio-pill-badge" style="margin-bottom: 12px;">
+                        <span class="studio-pulse-dot" style="background: #ec4899;"></span>
+                        <span class="studio-pill-text">NEURAL PULSE ENGINE</span>
+                    </div>
+                    <h3 class="identity-title">Living AI Diffusion Synthesis</h3>
+                    <p class="identity-desc">
+                        Experience generative AI through real-time procedural visualizations. Our integrated neural pulse monitors synaptic compute passes live during generation.
+                    </p>
+                </div>
+
+                <div class="identity-actions">
+                    <a href="{{ route('tools.image.index') }}" class="btn-studio-primary">
+                        <i data-lucide="play" style="width: 16px; height: 16px;"></i>
+                        <span>Launch Image Studio</span>
+                    </a>
+                    <a href="{{ route('tools.video.index') }}" class="btn-studio-secondary">
+                        <i data-lucide="film" style="width: 16px; height: 16px;"></i>
+                        <span>Launch Video Studio</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+</div>

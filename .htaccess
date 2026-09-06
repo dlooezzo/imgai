@@ -1,0 +1,12 @@
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # Prevent direct access to sensitive directories and files when deployed directly in public_html
+    RewriteRule ^(\.env|\.git|composer\.(json|lock)|package\.(json|lock)|phpunit\.xml|artisan) - [F,L,NC]
+    RewriteRule ^(app|bootstrap|config|database|resources|routes|tests|vendor)/ - [F,L,NC]
+    RewriteRule ^storage/logs/ - [F,L,NC]
+
+    # Rewrite all public traffic to the public/ subfolder
+    RewriteCond %{REQUEST_URI} !^/public/
+    RewriteRule ^(.*)$ public/$1 [L]
+</IfModule>
