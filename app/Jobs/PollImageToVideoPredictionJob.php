@@ -2,8 +2,10 @@
 
 namespace App\Jobs;
 
+use App\Models\CreditTransaction;
 use App\Models\VideoGeneration;
 use App\Services\AI\WanImageToVideoService;
+use App\Services\Credits\CreditService;
 use App\Services\Storage\R2StorageService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -82,6 +84,7 @@ class PollImageToVideoPredictionJob implements ShouldQueue
                 'error_message'  => 'Video generation timed out after 10 minutes. Please try again.',
                 'job_dispatched' => false,
             ]);
+            $this->refundCreditsIfEligible($generation, 'Video generation timed out after 10 minutes');
             return;
         }
 
@@ -111,6 +114,7 @@ class PollImageToVideoPredictionJob implements ShouldQueue
                             'error_message'  => 'Video generation completed on provider but no output video URL was returned. Please try again.',
                             'job_dispatched' => false,
                         ]);
+                        $this->refundCreditsIfEligible($generation, 'Provider returned empty output video URL');
                         return;
                     }
 
@@ -166,6 +170,7 @@ class PollImageToVideoPredictionJob implements ShouldQueue
                     'error_message'  => $errorMessage,
                     'job_dispatched' => false,
                 ]);
+                $this->refundCreditsIfEligible($generation, $errorMessage);
                 return;
             }
 
@@ -191,6 +196,39 @@ class PollImageToVideoPredictionJob implements ShouldQueue
             // Re-dispatch anyway on transient network errors
             self::dispatch($this->generationId, $this->attemptNumber + 1, $this->emptyOutputCount)
                 ->delay(now()->addSeconds(self::POLL_INTERVAL_SECONDS));
+        }
+    }
+
+    /**
+     * Idempotently refund credits for a failed or timed out generation.
+     */
+    protected function refundCreditsIfEligible(VideoGeneration $generation, string $reason): void
+    {
+        if (!$generation->user_id) {
+            return;
+        }
+
+        $alreadyRefunded = CreditTransaction::where('reference_id', $generation->id)
+            ->where('type', 'generation_refund')
+            ->exists();
+
+        if ($alreadyRefunded) {
+            return;
+        }
+
+        $cost = (int) config('credits.costs.image_to_video', 5);
+        try {
+            $creditService = app(CreditService::class);
+            $creditService->refundCredits(
+                user: $generation->user_id,
+                amount: $cost,
+                source: 'image_to_video',
+                referenceId: $generation->id,
+                description: "Refunded {$cost} credits for failed image-to-video {$generation->id}: {$reason}"
+            );
+            Log::info("[I2V REFUND SUCCESS] Refunded {$cost} credits for failed Generation {$generation->id}");
+        } catch (\Throwable $e) {
+            Log::error("[I2V REFUND FAILED] Could not refund credits for Generation {$generation->id}: {$e->getMessage()}");
         }
     }
 }

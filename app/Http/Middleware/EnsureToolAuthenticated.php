@@ -24,12 +24,24 @@ class EnsureToolAuthenticated
      */
     public function handle(Request $request, Closure $next): Response
     {
-        // 1. Check if user is already authenticated via Laravel Auth guard
+        // 1. Check if user is already authenticated via Laravel Auth guard (including via remember_token)
         if (Auth::check() && Auth::user() !== null) {
+            $authUser = Auth::user();
+            if (!session()->has('supabase_user_id')) {
+                session([
+                    'supabase_user_id' => (string) $authUser->id,
+                    'supabase_user' => [
+                        'id' => (string) $authUser->id,
+                        'email' => $authUser->email,
+                        'name' => $authUser->name,
+                        'role' => $authUser->role,
+                    ],
+                ]);
+            }
             return $next($request);
         }
 
-        // Hydrate Auth guard if session exists
+        // Hydrate Auth guard if session exists (maintain session without creating unnecessary new remember tokens)
         if (session()->has('supabase_user_id') && !empty(session('supabase_user_id'))) {
             $localUser = User::find(session('supabase_user_id'))
                 ?? (session('supabase_user.email') ? User::where('email', session('supabase_user.email'))->first() : null);

@@ -217,6 +217,29 @@ class ImageGeneratorController extends Controller
                     'error_message' => $errorMessage,
                 ]);
 
+                // Idempotently refund credits if not already refunded
+                if ($generation->user_id) {
+                    $alreadyRefunded = CreditTransaction::where('reference_id', $generation->id)
+                        ->where('type', 'generation_refund')
+                        ->exists();
+
+                    if (!$alreadyRefunded) {
+                        $cost = (int) config('credits.costs.image_generation', 1);
+                        try {
+                            $this->creditService->refundCredits(
+                                user: $generation->user_id,
+                                amount: $cost,
+                                source: 'image_generation',
+                                referenceId: $generation->id,
+                                description: "Refunded {$cost} credits for failed image generation {$generation->id}: {$errorMessage}"
+                            );
+                            Log::info("[IMAGE REFUND SUCCESS] Refunded {$cost} credits for failed generation {$generation->id}");
+                        } catch (Exception $refEx) {
+                            Log::error('[IMAGE FAILED REFUND ERROR] ' . $refEx->getMessage());
+                        }
+                    }
+                }
+
                 // Structured final failed log
                 Log::warning("[FINAL]\n" .
                     "- Local Generation ID: {$generation->id}\n" .

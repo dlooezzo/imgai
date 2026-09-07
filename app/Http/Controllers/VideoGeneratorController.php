@@ -239,6 +239,29 @@ class VideoGeneratorController extends Controller
                     'error_message' => $errorMessage,
                 ]);
 
+                // Idempotently refund credits if not already refunded
+                if ($videoGeneration->user_id) {
+                    $alreadyRefunded = CreditTransaction::where('reference_id', $videoGeneration->id)
+                        ->where('type', 'generation_refund')
+                        ->exists();
+
+                    if (!$alreadyRefunded) {
+                        $cost = (int) config('credits.costs.video_generation', 5);
+                        try {
+                            $this->creditService->refundCredits(
+                                user: $videoGeneration->user_id,
+                                amount: $cost,
+                                source: 'video_generation',
+                                referenceId: $videoGeneration->id,
+                                description: "Refunded {$cost} credits for failed video generation {$videoGeneration->id}: {$errorMessage}"
+                            );
+                            Log::info("[VIDEO REFUND SUCCESS] Refunded {$cost} credits for failed generation {$videoGeneration->id}");
+                        } catch (Exception $refEx) {
+                            Log::error('[VIDEO FAILED REFUND ERROR] ' . $refEx->getMessage());
+                        }
+                    }
+                }
+
                 Log::warning("[VIDEO FINAL]\n" .
                     "- Local Generation ID: {$videoGeneration->id}\n" .
                     "- Status: failed\n" .

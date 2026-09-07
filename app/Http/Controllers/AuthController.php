@@ -59,7 +59,8 @@ class AuthController extends Controller
                 try {
                     $localUser = $this->supabase->syncUser($userData);
                     if ($localUser) {
-                        Auth::login($localUser);
+                        // Explicit user login: Enable Laravel persistent authentication (remember token cookie)
+                        Auth::login($localUser, true);
                     }
                 } catch (Exception $dbEx) {
                     Log::info('Local user sync skipped: ' . $dbEx->getMessage());
@@ -91,6 +92,17 @@ class AuthController extends Controller
     public function logout(Request $request): JsonResponse
     {
         session()->forget(['supabase_token', 'supabase_user_id', 'supabase_user']);
+
+        if (Auth::check()) {
+            $user = Auth::user();
+            try {
+                $user->setRememberToken(null);
+                $user->save();
+            } catch (Exception $e) {
+                // Ignore if DB connection fails on logout
+            }
+        }
+
         Auth::logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();
