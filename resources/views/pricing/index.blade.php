@@ -574,6 +574,45 @@
 
     </div>
 
+    <!-- Post-Purchase Success Modal Overlay -->
+    <div class="modal-backdrop" x-show="checkoutSuccess" x-cloak style="position: fixed; inset: 0; background: rgba(3, 7, 18, 0.88); backdrop-filter: blur(16px); z-index: 9999; display: flex; align-items: center; justify-content: center; padding: 20px;">
+        <div style="max-width: 480px; width: 100%; background: #0f172a; border: 1px solid rgba(168, 85, 247, 0.4); box-shadow: 0 0 50px rgba(168, 85, 247, 0.25); border-radius: 24px; padding: 36px 28px; text-align: center; position: relative;">
+            <div style="width: 68px; height: 68px; border-radius: 50%; background: linear-gradient(135deg, #10b981 0%, #059669 100%); display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; box-shadow: 0 0 30px rgba(16, 185, 129, 0.5);">
+                <svg style="width: 34px; height: 34px; color: #ffffff;" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+            </div>
+
+            <div style="display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 9999px; background: rgba(16, 185, 129, 0.12); border: 1px solid rgba(16, 185, 129, 0.3); color: #34d399; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 12px;">
+                Payment Successful
+            </div>
+
+            <h2 style="font-size: 1.75rem; font-weight: 800; color: #ffffff; margin-bottom: 8px; letter-spacing: -0.02em;">
+                Subscription Activated!
+            </h2>
+
+            <p style="color: #94a3b8; font-size: 0.95rem; line-height: 1.5; margin-bottom: 24px;">
+                Your subscription is confirmed and your AI generation credits are now available in your studio account.
+            </p>
+
+            <div style="margin-bottom: 24px;">
+                <div style="display: inline-flex; align-items: center; gap: 8px; padding: 6px 16px; border-radius: 9999px; background: rgba(168, 85, 247, 0.12); border: 1px solid rgba(168, 85, 247, 0.3); color: #c084fc; font-size: 0.85rem; font-weight: 600;">
+                    <span>Returning to Dashboard in <strong x-text="redirectCountdown" style="color: #ffffff; font-weight: 800; font-size: 0.95rem;">3</strong>s...</span>
+                </div>
+            </div>
+
+            <div style="display: flex; flex-direction: column; gap: 10px;">
+                <a href="{{ route('tools.overview') }}" class="btn-primary" style="padding: 14px 28px; border-radius: 14px; font-size: 1rem; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; gap: 8px; text-decoration: none; background: linear-gradient(135deg, #7c3aed 0%, #a855f7 50%, #c026d3 100%); color: #ffffff; box-shadow: 0 4px 20px rgba(168, 85, 247, 0.45); transition: all 0.2s ease;">
+                    <span>Continue to Dashboard</span>
+                    <i data-lucide="arrow-right" style="width: 18px; height: 18px;"></i>
+                </a>
+                <a href="{{ route('tools.index') }}" style="color: #94a3b8; font-size: 0.88rem; text-decoration: none; padding: 8px; font-weight: 500;">
+                    Go to Image Studio
+                </a>
+            </div>
+        </div>
+    </div>
+
 </div>
 
 <script>
@@ -587,6 +626,9 @@ function pricingManager(config) {
         tiers: config.tiers,
         billingCycle: 'month', // 'month' or 'year'
         paddleInitialized: false,
+        checkoutSuccess: false,
+        redirectCountdown: 3,
+        redirectTimer: null,
 
         init() {
             this.$nextTick(() => {
@@ -609,6 +651,9 @@ function pricingManager(config) {
                         token: this.paddleClientToken,
                         eventCallback: (event) => {
                             console.log('[Paddle Event]', event);
+                            if (event && (event.name === 'checkout.completed' || event.name === 'transaction.completed')) {
+                                this.handleCheckoutSuccess();
+                            }
                         }
                     });
                     this.paddleInitialized = true;
@@ -616,6 +661,22 @@ function pricingManager(config) {
                     console.error('Failed to initialize Paddle:', e);
                 }
             }
+        },
+
+        handleCheckoutSuccess() {
+            this.checkoutSuccess = true;
+            this.redirectCountdown = 3;
+            if (this.redirectTimer) clearInterval(this.redirectTimer);
+            this.redirectTimer = setInterval(() => {
+                this.redirectCountdown--;
+                if (this.redirectCountdown <= 0) {
+                    clearInterval(this.redirectTimer);
+                    window.location.href = "{{ route('tools.overview') }}";
+                }
+            }, 1000);
+            this.$nextTick(() => {
+                if (window.lucide) window.lucide.createIcons();
+            });
         },
 
         toggleBillingCycle(cycle) {
@@ -670,7 +731,10 @@ function pricingManager(config) {
                 items: [{
                     priceId: priceId,
                     quantity: 1
-                }]
+                }],
+                settings: {
+                    successUrl: "{{ route('welcome') }}"
+                }
             };
 
             if (this.userEmail) {
