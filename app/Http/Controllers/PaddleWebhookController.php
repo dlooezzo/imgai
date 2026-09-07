@@ -409,7 +409,7 @@ class PaddleWebhookController extends Controller
             }
         }
 
-        // 3. Try matching customer email
+        // 3. Try matching customer email directly from payload
         $customerEmail = $data['customer']['email']
             ?? $data['customer_email']
             ?? ($customData['email'] ?? null);
@@ -418,6 +418,19 @@ class PaddleWebhookController extends Controller
             $userByEmail = User::where('email', $customerEmail)->first();
             if ($userByEmail) {
                 return $userByEmail;
+            }
+        }
+
+        // 4. Fallback: Query Paddle API for customer details if customer ID is present
+        if ($customerId) {
+            $apiCustomer = $this->paddleService->getCustomerDetails($customerId);
+            if (!empty($apiCustomer['email']) && filter_var($apiCustomer['email'], FILTER_VALIDATE_EMAIL)) {
+                $userByApiEmail = User::where('email', $apiCustomer['email'])->first();
+                if ($userByApiEmail) {
+                    $userByApiEmail->paddle_customer_id = $customerId;
+                    $userByApiEmail->save();
+                    return $userByApiEmail;
+                }
             }
         }
 

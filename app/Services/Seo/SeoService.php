@@ -19,12 +19,12 @@ class SeoService
     public function getBaseUrl(): string
     {
         // 1. Check SiteSetting for custom site_url if configured in database
-        if (class_exists(SiteSetting::class) && Schema::hasTable('site_settings')) {
+        try {
             $siteUrl = SiteSetting::get('site_url');
             if (!empty($siteUrl)) {
                 return rtrim($siteUrl, '/');
             }
-        }
+        } catch (\Throwable $e) {}
 
         // 2. Check config('app.url')
         $url = config('app.url');

@@ -47,8 +47,17 @@ if (file_exists(INSTALLER_ROOT_DIR . '/app/Services/InstallerDatabaseService.php
     require_once INSTALLER_ROOT_DIR . '/app/Services/InstallerDatabaseService.php';
 }
 
-// 1. SECURITY LOCK: Prevent re-running if installed
+// 1. SECURITY LOCK: Prevent re-running if installed in RDS or local lock present
 $isAlreadyInstalled = false;
+
+if (file_exists(INSTALLER_ROOT_DIR . '/bootstrap/installation_check.php')) {
+    require_once INSTALLER_ROOT_DIR . '/bootstrap/installation_check.php';
+    $dbCheck = checkApplicationInstallationStatus(INSTALLER_ROOT_DIR);
+    if ($dbCheck['status'] === 'installed' || $dbCheck['status'] === 'partially_installed') {
+        $isAlreadyInstalled = true;
+    }
+}
+
 $allKnownLocks = [
     INSTALLER_LOCK,
     INSTALLER_FALLBACK_LOCK,
@@ -77,11 +86,16 @@ if (!$isAlreadyInstalled && file_exists($envCheckPath)) {
     }
 }
 
-// Block any POST re-installation attempt once system is installed
-if ($isAlreadyInstalled && $_SERVER['REQUEST_METHOD'] === 'POST') {
+// Block any re-installation attempt once system is installed in RDS or locked
+if ($isAlreadyInstalled) {
+    if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+        header('Location: /', true, 302);
+        exit;
+    }
+
     http_response_code(403);
     header('Content-Type: text/html; charset=utf-8');
-    echo '<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>النظام مثبت ومؤمّن</title><style>body{background:#090d16;color:#f8fafc;font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;}</style></head><body><div style="text-align:center;padding:2.5rem;background:#111827;border-radius:16px;border:1px solid rgba(255,255,255,0.1);max-width:520px;"><h2 style="color:#ef4444;margin-bottom:12px;">🔒 نظام التثبيت مؤمّن ومغلق</h2><p style="color:#94a3b8;line-height:1.6;">تم تثبيت وتأمين المشروع مسبقاً لمنع إعادة التشغيل من الإنترنت. لإعادة التهيئة، يجب إزالة ملف storage/installed.lock من الخادم يدوياً.</p><br><a href="/" style="display:inline-block;background:#3b82f6;color:#fff;padding:10px 20px;border-radius:8px;text-decoration:none;font-weight:bold;">الذهاب للرئيسية 🚀</a></div></body></html>';
+    echo '<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>النظام مثبت ومؤمّن</title><style>body{background:#090d16;color:#f8fafc;font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;}</style></head><body><div style="text-align:center;padding:2.5rem;background:#111827;border-radius:16px;border:1px solid rgba(255,255,255,0.1);max-width:520px;"><h2 style="color:#ef4444;margin-bottom:12px;">🔒 نظام التثبيت مؤمّن ومغلق</h2><p style="color:#94a3b8;line-height:1.6;">تم تأكيد تثبيت المشروع وجداول قاعدة البيانات في RDS مسبقاً. إعادة التثبيت محظورة بشكل قاطع لحماية بيانات الإنتاج الحالية.</p><br><a href="/" style="display:inline-block;background:#3b82f6;color:#fff;padding:10px 20px;border-radius:8px;text-decoration:none;font-weight:bold;">الذهاب للرئيسية 🚀</a></div></body></html>';
     exit;
 }
 

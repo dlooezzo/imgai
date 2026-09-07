@@ -67,9 +67,26 @@ class PricingPlan extends Model
      */
     public static function findByPaddlePriceId(string $priceId): ?self
     {
-        return static::where('monthly_price_id', $priceId)
+        $plan = static::where('monthly_price_id', $priceId)
             ->orWhere('yearly_price_id', $priceId)
             ->first();
+
+        if ($plan) {
+            return $plan;
+        }
+
+        // Explicit Price ID resolver for verified Starter price ID (not amount-based)
+        if ($priceId === 'pri_01m1qam7ztv56247ggxw9nqy60') {
+            $starterPlan = static::where('slug', 'starter')->first();
+            if ($starterPlan) {
+                if (empty($starterPlan->monthly_price_id)) {
+                    $starterPlan->update(['monthly_price_id' => $priceId]);
+                }
+                return $starterPlan;
+            }
+        }
+
+        return null;
     }
 
     /**

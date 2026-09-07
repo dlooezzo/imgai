@@ -32,11 +32,10 @@ class AppServiceProvider extends ServiceProvider
     {
         // 1. Dynamically override runtime configurations from persistent database SiteSettings
         try {
-            if (\Illuminate\Support\Facades\Schema::hasTable('site_settings')) {
-                // Canonical Site URL from Database
-                if ($customSiteUrl = \App\Models\SiteSetting::get('site_url')) {
-                    config(['app.url' => rtrim($customSiteUrl, '/')]);
-                }
+            // Canonical Site URL from Database
+            if ($customSiteUrl = \App\Models\SiteSetting::get('site_url')) {
+                config(['app.url' => rtrim($customSiteUrl, '/')]);
+            }
 
                 // Site Branding
                 if ($siteTitle = \App\Models\SiteSetting::get('site_title')) {
@@ -96,7 +95,6 @@ class AppServiceProvider extends ServiceProvider
                 if ($sbService = \App\Models\SiteSetting::get('supabase_service_role_key')) {
                     config(['services.supabase.service_key' => $sbService]);
                 }
-            }
         } catch (\Throwable $e) {
             // Silently ignore during initial boot / migration phases
         }

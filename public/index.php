@@ -36,37 +36,20 @@ if (!$projectRoot) {
     $projectRoot = dirname(__DIR__);
 }
 
-// 2. Comprehensive check if application is installed
-$isInstalled = false;
-$lockFiles = [
-    $projectRoot . '/storage/installed.lock',
-    $projectRoot . '/.installed',
-    $projectRoot . '/installed.lock',
-    __DIR__ . '/installed.lock',
-    __DIR__ . '/storage/installed.lock',
-    __DIR__ . '/../storage/installed.lock',
-    __DIR__ . '/../.installed',
-    __DIR__ . '/../installed.lock',
-];
+// 2. Authoritative RDS Persistent Installation Check
+require_once $projectRoot . '/bootstrap/installation_check.php';
+$installCheck = checkApplicationInstallationStatus($projectRoot);
 
-foreach ($lockFiles as $f) {
-    if (file_exists($f)) {
-        $isInstalled = true;
-        break;
-    }
+if ($installCheck['status'] === 'partially_installed') {
+    http_response_code(500);
+    header('Content-Type: text/html; charset=utf-8');
+    $found = htmlspecialchars(implode(', ', $installCheck['found'] ?? []));
+    $req = htmlspecialchars(implode(', ', $installCheck['required'] ?? []));
+    echo "<!DOCTYPE html><html><head><title>Partial Schema Detected</title></head><body style=\"font-family:sans-serif;background:#090d16;color:#f8fafc;padding:3rem;text-align:center;\"><div style=\"max-width:600px;margin:0 auto;background:#111827;padding:2rem;border-radius:12px;border:1px solid #ef4444;\"><h2 style=\"color:#ef4444;\">Database Partially Initialized</h2><p style=\"color:#94a3b8;\">Found tables: {$found}<br>Required: {$req}</p><p style=\"color:#cbd5e1;\">To protect production data, auto-installation and table dropping are strictly halted. Please review migrations manually.</p></div></body></html>";
+    exit;
 }
 
-// 3. Check .env configuration for APP_INSTALLED flag
-$envPath = $projectRoot . '/.env';
-if (!$isInstalled && file_exists($envPath)) {
-    $envContent = @file_get_contents($envPath) ?: '';
-    if (preg_match('/^APP_INSTALLED=(true|1)/m', $envContent)) {
-        $isInstalled = true;
-    }
-}
-
-// 4. Automatic redirect to installer if not installed
-if (!$isInstalled) {
+if ($installCheck['status'] === 'uninstalled') {
     $requestUri = $_SERVER['REQUEST_URI'] ?? '/';
     $path = parse_url($requestUri, PHP_URL_PATH) ?: '/';
 
@@ -82,6 +65,17 @@ if (!$isInstalled) {
 
     if (file_exists(__DIR__ . '/install.php')) {
         require __DIR__ . '/install.php';
+        exit;
+    }
+}
+
+if ($installCheck['status'] === 'db_error') {
+    // If DB is unreachable and in production, do NOT redirect to installer (prevents exposing installer on DB hiccups)
+    $envMode = getenv('APP_ENV') ?: ($_ENV['APP_ENV'] ?? 'production');
+    if ($envMode === 'production') {
+        http_response_code(503);
+        header('Content-Type: text/html; charset=utf-8');
+        echo "<!DOCTYPE html><html><head><title>Database Unavailable</title></head><body style=\"font-family:sans-serif;background:#090d16;color:#f8fafc;padding:3rem;text-align:center;\"><div style=\"max-width:500px;margin:0 auto;background:#111827;padding:2rem;border-radius:12px;\"><h2 style=\"color:#f59e0b;\">Service Temporarily Unavailable</h2><p style=\"color:#94a3b8;\">Connecting to the database timed out or failed. Please refresh in a moment.</p></div></body></html>";
         exit;
     }
 }

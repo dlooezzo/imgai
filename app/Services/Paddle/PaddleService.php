@@ -120,4 +120,30 @@ class PaddleService
 
         return true;
     }
+
+    /**
+     * Retrieve customer details directly from Paddle API by Customer ID.
+     */
+    public function getCustomerDetails(string $customerId): ?array
+    {
+        if (empty($this->apiKey) || empty($customerId)) {
+            return null;
+        }
+
+        try {
+            $url = $this->getBaseUrl() . '/customers/' . urlencode($customerId);
+            $response = Http::withHeaders([
+                'Authorization' => 'Bearer ' . $this->apiKey,
+                'Content-Type' => 'application/json',
+            ])->timeout(5)->get($url);
+
+            if ($response->successful()) {
+                return $response->json('data');
+            }
+        } catch (Exception $e) {
+            Log::info("[PADDLE SERVICE] getCustomerDetails failed for {$customerId}: " . $e->getMessage());
+        }
+
+        return null;
+    }
 }

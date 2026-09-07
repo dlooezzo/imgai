@@ -24,12 +24,20 @@ class EnsureToolAuthenticated
      */
     public function handle(Request $request, Closure $next): Response
     {
-        // 1. Check if user is already authenticated via Laravel session or Auth guard
-        if (session()->has('supabase_user_id') && !empty(session('supabase_user_id'))) {
+        // 1. Check if user is already authenticated via Laravel Auth guard
+        if (Auth::check() && Auth::user() !== null) {
             return $next($request);
         }
 
-        if (Auth::check() && Auth::user() !== null) {
+        // Hydrate Auth guard if session exists
+        if (session()->has('supabase_user_id') && !empty(session('supabase_user_id'))) {
+            $localUser = User::find(session('supabase_user_id'))
+                ?? (session('supabase_user.email') ? User::where('email', session('supabase_user.email'))->first() : null);
+
+            if ($localUser) {
+                Auth::login($localUser);
+            }
+
             return $next($request);
         }
 

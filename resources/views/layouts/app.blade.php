@@ -40,10 +40,26 @@
         default => ($generations ?? [])
     };
 
+    $authModelUser = Auth::user();
+    if ($authModelUser) {
+        $authoritativeUser = [
+            'id' => $authModelUser->id,
+            'email' => $authModelUser->email,
+            'name' => $authModelUser->name,
+            'role' => $authModelUser->role,
+            'credit_balance' => (int) $authModelUser->credit_balance,
+            'avatar' => session('supabase_user.avatar') ?? null,
+        ];
+    } elseif (!empty($currentUser)) {
+        $authoritativeUser = $currentUser;
+    } else {
+        $authoritativeUser = null;
+    }
+
     $appConfig = [
         'supabaseUrl' => $supabaseConfig['url'] ?? '',
         'supabaseAnonKey' => $supabaseConfig['anonKey'] ?? '',
-        'currentUser' => $currentUser ?? null,
+        'currentUser' => $authoritativeUser,
         'initialGenerations' => $initialGens,
         'securitySettings' => $securitySettings ?? null,
         'stats' => $stats ?? null,
@@ -81,9 +97,11 @@
 
                 <!-- Dynamic Navigation Links -->
                 @php
-                    $appNavPages = \Illuminate\Support\Facades\Schema::hasTable('pages')
-                        ? \App\Models\Page::published()->inNavigation()->where('slug', '!=', 'pricing')->orderBy('navigation_order')->get()
-                        : collect([]);
+                    try {
+                        $appNavPages = \App\Models\Page::published()->inNavigation()->where('slug', '!=', 'pricing')->orderBy('navigation_order')->get();
+                    } catch (\Throwable $e) {
+                        $appNavPages = collect([]);
+                    }
                 @endphp
                 <nav class="header-nav-cms" style="display: flex; align-items: center; gap: 20px;">
                     <a href="{{ route('tools.overview') }}" class="header-cms-link {{ request()->routeIs('tools.overview') ? 'active' : '' }}" style="color: #94a3b8; text-decoration: none; font-size: 0.85rem; font-weight: 500; transition: color 0.15s;">
@@ -102,7 +120,15 @@
                 </nav>
             </div>
 
-            <div class="header-actions">
+            <div class="header-actions" style="display: flex; align-items: center; gap: 14px;">
+                @if (Auth::check())
+                    <a href="{{ route('pricing') }}" class="header-credit-badge" title="Live Available Credits — Click to Get More" style="display: inline-flex; align-items: center; gap: 7px; background: linear-gradient(135deg, rgba(99, 102, 241, 0.15), rgba(139, 92, 246, 0.15)); border: 1px solid rgba(139, 92, 246, 0.35); color: #c084fc; padding: 6px 14px; border-radius: 9999px; text-decoration: none; font-size: 0.85rem; font-weight: 700; transition: all 0.2s ease; box-shadow: 0 0 15px rgba(139, 92, 246, 0.12);">
+                        <i data-lucide="zap" style="width: 15px; height: 15px; fill: #fbbf24; color: #fbbf24;"></i>
+                        <span x-text="user && user.credit_balance !== undefined ? Number(user.credit_balance).toLocaleString() + ' Credits' : '{{ number_format(Auth::user()->credit_balance) }} Credits'">
+                            {{ number_format(Auth::user()->credit_balance) }} Credits
+                        </span>
+                    </a>
+                @endif
             </div>
         </header>
 

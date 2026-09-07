@@ -35,8 +35,24 @@
         </div>
     </div>
 
-    <!-- Quick Stats Telemetry Grid (3 Columns) -->
-    <div class="dashboard-stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));">
+    <!-- Quick Stats Telemetry Grid (4 Columns) -->
+    <div class="dashboard-stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));">
+        <div class="stat-card stat-amber" style="border-color: rgba(245, 158, 11, 0.35); background: linear-gradient(135deg, rgba(245, 158, 11, 0.1), rgba(217, 119, 6, 0.03));">
+            <div class="stat-icon-wrap" style="background: rgba(245, 158, 11, 0.2); color: #fbbf24;">
+                <i data-lucide="zap" style="width: 24px; height: 24px; fill: #fbbf24;"></i>
+            </div>
+            <div class="stat-content">
+                <div class="stat-label" style="color: #fbbf24; font-weight: 700;">Available Credits</div>
+                <div class="stat-value" style="color: #fff;" x-text="user && user.credit_balance !== undefined ? Number(user.credit_balance).toLocaleString() : '{{ Auth::check() ? number_format(Auth::user()->credit_balance) : 0 }}'">
+                    {{ Auth::check() ? number_format(Auth::user()->credit_balance) : 0 }}
+                </div>
+                <div class="stat-subtext" style="display: flex; align-items: center; justify-content: space-between; margin-top: 4px;">
+                    <span>Live RDS Balance</span>
+                    <a href="{{ route('pricing') }}" style="color: #fbbf24; text-decoration: none; font-weight: 600; font-size: 0.76rem; border-bottom: 1px dotted #fbbf24;">Add Credits &rarr;</a>
+                </div>
+            </div>
+        </div>
+
         <div class="stat-card stat-indigo">
             <div class="stat-icon-wrap" style="background: rgba(99, 102, 241, 0.15); color: var(--brand-primary);">
                 <i data-lucide="layers" style="width: 24px; height: 24px;"></i>

@@ -72,6 +72,17 @@
                     </div>
                 </a>
 
+                <!-- Live Credits Badge from RDS User Balance -->
+                <a href="{{ route('pricing') }}" class="sidebar-credit-pill" title="Available Credits — Click to Upgrade" style="display: flex; align-items: center; justify-content: space-between; background: rgba(99, 102, 241, 0.08); border: 1px solid rgba(99, 102, 241, 0.25); border-radius: var(--radius-md); padding: 7px 10px; margin: 4px 0 6px 0; text-decoration: none; color: #a5b4fc; font-size: 0.8rem; font-weight: 600; transition: all 0.2s ease;">
+                    <span style="display: flex; align-items: center; gap: 6px;">
+                        <i data-lucide="zap" style="width: 13px; height: 13px; fill: #fbbf24; color: #fbbf24;"></i>
+                        <span>Credits</span>
+                    </span>
+                    <span style="font-weight: 700; color: #f8fafc;" x-text="user && user.credit_balance !== undefined ? Number(user.credit_balance).toLocaleString() : '{{ Auth::check() ? number_format(Auth::user()->credit_balance) : 0 }}'">
+                        {{ Auth::check() ? number_format(Auth::user()->credit_balance) : 0 }}
+                    </span>
+                </a>
+
                 <!-- Sign Out Button Directly Underneath (Bottom) -->
                 <button type="button" 
                         class="sidebar-logout-btn" 
