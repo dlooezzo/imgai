@@ -41,6 +41,15 @@ class ToolController extends Controller
             $heroVideoUrl = asset('storage/' . $heroVideoPath);
         }
 
+        // Always ensure a real, working showcase video is available
+        if (empty($heroVideoUrl)) {
+            $heroVideoUrl = asset('videos/hero-showcase.mp4');
+        } elseif (request()->isSecure() && str_starts_with($heroVideoUrl, 'http://')) {
+            // Prevent mixed content blocking on HTTPS
+            $heroVideoUrl = 'https://' . substr($heroVideoUrl, 7);
+        }
+
+        $heroVideoPoster = asset('videos/hero-showcase-poster.jpg');
         $heroVideoTitle = \App\Models\SiteSetting::get('hero_showcase_title', 'Neural Frame Synthesis');
         $heroVideoCaption = \App\Models\SiteSetting::get('hero_showcase_caption', 'Spatial Diffusion • Volumetric Lighting • Temporal Consistency');
         $heroVideoScale = (int) \App\Models\SiteSetting::get('hero_showcase_video_scale', 200);
@@ -50,6 +59,7 @@ class ToolController extends Controller
             'supabaseConfig' => $supabaseConfig,
             'currentUser' => session('supabase_user'),
             'heroVideoUrl' => $heroVideoUrl,
+            'heroVideoPoster' => $heroVideoPoster,
             'heroVideoTitle' => $heroVideoTitle,
             'heroVideoCaption' => $heroVideoCaption,
             'heroVideoScale' => $heroVideoScale,

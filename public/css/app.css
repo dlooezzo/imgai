@@ -3853,7 +3853,7 @@ input:checked + .slider-round:before {
         width: 100% !important;
         max-width: 100% !important;
         min-width: 0 !important;
-        min-height: 0 !important;
+        min-height: 190px !important;
         height: auto !important;
         margin: 0 auto !important;
         display: flex !important;
@@ -3862,6 +3862,7 @@ input:checked + .slider-round:before {
         overflow: hidden !important;
         box-sizing: border-box !important;
         border-radius: var(--radius-lg, 16px) !important;
+        position: relative !important;
     }
 
     .hero-video-element {
@@ -3869,14 +3870,24 @@ input:checked + .slider-round:before {
         max-width: 100% !important;
         min-width: 0 !important;
         height: auto !important;
+        aspect-ratio: 16 / 9 !important;
         max-height: 55vh !important;
-        object-fit: contain !important;
+        object-fit: cover !important;
         display: block !important;
         border-radius: var(--radius-lg, 16px) !important;
+        background: #07090e !important;
+    }
+
+    .hero-video-play-btn {
+        transition: transform 0.2s ease, box-shadow 0.2s ease !important;
+    }
+
+    .hero-video-play-btn:active {
+        transform: scale(0.92) !important;
     }
 
     .hero-video-atmospheric-canvas {
-        min-height: 0 !important;
+        min-height: 190px !important;
         height: auto !important;
         aspect-ratio: 16 / 9 !important;
         max-width: 100% !important;
@@ -3960,6 +3971,10 @@ input:checked + .slider-round:before {
 
     .header-credit-badge {
         display: none !important; /* Conceal credit badge on ultra-compact 360px to preserve logo & menu */
+    }
+
+    .hero-video-container {
+        min-height: 175px !important;
     }
 }
 

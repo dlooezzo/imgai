@@ -73,103 +73,142 @@
             <!-- Right Side: Cinematic Hero Video Area (Clean, borderless, frameless display) -->
             <div class="studio-hero-media-wrapper" style="--hero-video-max-width: {{ $calculatedMaxWidth }}px; max-width: {{ $calculatedMaxWidth }}px; width: 100%; margin: 0 auto; background: transparent; border: none; box-shadow: none; display: flex; justify-content: center; align-items: center;">
 
-                <div class="hero-video-container" style="position: relative; overflow: visible; border: none; box-shadow: none; background: transparent; width: 100%; height: auto; margin: 0 auto; display: flex; justify-content: center; align-items: center;">
+                <div class="hero-video-container" style="position: relative; overflow: hidden; border: none; box-shadow: none; background: transparent; width: 100%; height: auto; margin: 0 auto; display: flex; justify-content: center; align-items: center; border-radius: var(--radius-lg, 16px);">
                     
-                    @if (!empty($heroVideoUrl))
-                        <!-- Hero Showcase Video — Clean, frameless, 2x enlarged, preserving native aspect ratio -->
-                        <video 
-                            id="hero-showcase-video-elem"
-                            src="{{ $heroVideoUrl }}"
-                            autoplay 
-                            loop 
-                            muted 
-                            playsinline 
-                            webkit-playsinline
-                            x5-playsinline
-                            preload="auto"
-                            class="hero-video-element" 
-                            style="display: block; width: 100%; height: auto; max-width: 100%; max-height: 85vh; object-fit: contain; position: relative; z-index: 2; border: none; background: transparent; box-shadow: none; border-radius: var(--radius-lg, 16px);"
-                        >
-                            <source src="{{ $heroVideoUrl }}" type="video/mp4">
-                            <source src="{{ $heroVideoUrl }}" type="video/webm">
-                            <source src="{{ $heroVideoUrl }}" type="video/ogg">
-                        </video>
-                        <script>
-                            (function() {
-                                var v = document.getElementById('hero-showcase-video-elem');
-                                if (v) {
-                                    v.muted = true;
-                                    v.defaultMuted = true;
-                                    var tryPlay = function() {
+                    <!-- Hero Showcase Video — Clean, frameless, native aspect ratio, guaranteed playback -->
+                    <video 
+                        id="hero-showcase-video-elem"
+                        src="{{ $heroVideoUrl }}"
+                        poster="{{ $heroVideoPoster ?? asset('videos/hero-showcase-poster.jpg') }}"
+                        autoplay 
+                        loop 
+                        muted 
+                        playsinline 
+                        webkit-playsinline
+                        x5-playsinline
+                        preload="auto"
+                        class="hero-video-element" 
+                        style="display: block; width: 100%; height: auto; max-width: 100%; max-height: 85vh; object-fit: cover; aspect-ratio: 16 / 9; position: relative; z-index: 2; border: none; background: #07090e; box-shadow: none; border-radius: var(--radius-lg, 16px);"
+                    >
+                        <source src="{{ $heroVideoUrl }}" type="video/mp4">
+                    </video>
+
+                    <!-- Mobile / Desktop Interactive Play & Pause Overlay -->
+                    <div id="hero-video-play-overlay" class="hero-video-play-overlay" style="position: absolute; inset: 0; z-index: 5; display: flex; align-items: center; justify-content: center; pointer-events: none; transition: opacity 0.25s ease; opacity: 0; background: rgba(7, 9, 14, 0.25);">
+                        <button type="button" id="hero-video-play-btn" class="hero-video-play-btn" aria-label="Play Video" style="pointer-events: auto; width: 56px; height: 56px; border-radius: 50%; background: rgba(15, 20, 36, 0.85); backdrop-filter: blur(12px); border: 2px solid rgba(168, 85, 247, 0.6); box-shadow: 0 0 25px rgba(168, 85, 247, 0.5), 0 0 45px rgba(6, 182, 212, 0.25); color: #ffffff; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: transform 0.2s ease;">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" style="margin-left: 2px;"><path d="M8 5v14l11-7z"/></svg>
+                        </button>
+                    </div>
+
+                    <!-- Atmospheric Procedural Canvas — Underlay & Fallback -->
+                    <div id="hero-video-fallback-canvas" class="hero-video-atmospheric-canvas" style="position: absolute; inset: 0; width: 100%; height: 100%; z-index: 1; pointer-events: none; display: flex;">
+                        <div class="atmospheric-mesh-grid"></div>
+                        <div class="atmospheric-light-orb orb-primary"></div>
+                        <div class="atmospheric-light-orb orb-secondary"></div>
+                        <div class="atmospheric-light-orb orb-accent"></div>
+                        <div class="atmospheric-vignette" style="position: absolute; inset: 0; background: linear-gradient(180deg, rgba(7, 9, 14, 0.35) 0%, rgba(7, 9, 14, 0.1) 50%, rgba(7, 9, 14, 0.75) 100%), radial-gradient(circle at 50% 50%, transparent 40%, rgba(7, 9, 14, 0.6) 100%);"></div>
+                    </div>
+
+                    <script>
+                        (function() {
+                            var v = document.getElementById('hero-showcase-video-elem');
+                            var overlay = document.getElementById('hero-video-play-overlay');
+                            var btn = document.getElementById('hero-video-play-btn');
+                            if (!v) return;
+
+                            v.muted = true;
+                            v.defaultMuted = true;
+
+                            function updateOverlay() {
+                                if (!overlay) return;
+                                if (v.paused || v.ended) {
+                                    overlay.style.opacity = '1';
+                                    overlay.style.pointerEvents = 'auto';
+                                } else {
+                                    overlay.style.opacity = '0';
+                                    overlay.style.pointerEvents = 'none';
+                                }
+                            }
+
+                            v.addEventListener('play', updateOverlay);
+                            v.addEventListener('pause', updateOverlay);
+                            v.addEventListener('playing', updateOverlay);
+
+                            v.addEventListener('loadedmetadata', function() {
+                                if (v.videoWidth && v.videoHeight) {
+                                    v.style.aspectRatio = v.videoWidth + ' / ' + v.videoHeight;
+                                }
+                            });
+
+                            // Resilient fallback if custom external video URL fails
+                            var fallbackSwitched = false;
+                            v.addEventListener('error', function() {
+                                if (!fallbackSwitched) {
+                                    fallbackSwitched = true;
+                                    var defaultVideo = "{{ asset('videos/hero-showcase.mp4') }}";
+                                    if (v.src !== defaultVideo) {
+                                        console.warn('Hero showcase custom video failed, falling back to local showcase video.');
+                                        v.src = defaultVideo;
+                                        v.load();
                                         var p = v.play();
                                         if (p !== undefined) {
-                                            p.catch(function() {
-                                                var unlock = function() {
-                                                    v.play();
-                                                    window.removeEventListener('touchstart', unlock);
-                                                    window.removeEventListener('click', unlock);
-                                                };
-                                                window.addEventListener('touchstart', unlock, { once: true, passive: true });
-                                                window.addEventListener('click', unlock, { once: true });
-                                            });
+                                            p.then(updateOverlay).catch(updateOverlay);
                                         }
-                                    };
-                                    if (document.readyState === 'complete' || document.readyState === 'interactive') {
-                                        tryPlay();
-                                    } else {
-                                        document.addEventListener('DOMContentLoaded', tryPlay);
                                     }
                                 }
-                            })();
-                        </script>
-                    @endif
+                            });
 
-                    <!-- Atmospheric Procedural Canvas — only shown when NO video is present, or as error fallback -->
-                    <div id="hero-video-fallback-canvas" class="hero-video-atmospheric-canvas" style="position: {{ !empty($heroVideoUrl) ? 'absolute' : 'relative' }}; inset: 0; width: 100%; height: 100%; min-height: 220px; z-index: 1; pointer-events: none; display: {{ !empty($heroVideoUrl) ? 'none' : 'flex' }};">
-                        @if (empty($heroVideoUrl))
-                            <div class="atmospheric-mesh-grid"></div>
-                            <div class="atmospheric-light-orb orb-primary"></div>
-                            <div class="atmospheric-light-orb orb-secondary"></div>
-                            <div class="atmospheric-light-orb orb-accent"></div>
-                        @endif
-                        
-                        <!-- Subtle dark vignette overlay for fallback canvas only -->
-                        <div class="atmospheric-vignette" style="position: absolute; inset: 0; background: linear-gradient(180deg, rgba(7, 9, 14, 0.35) 0%, rgba(7, 9, 14, 0.1) 50%, rgba(7, 9, 14, 0.75) 100%), radial-gradient(circle at 50% 50%, transparent 40%, rgba(7, 9, 14, 0.6) 100%);"></div>
+                            function togglePlay(e) {
+                                if (e) e.stopPropagation();
+                                if (v.paused) {
+                                    v.muted = true;
+                                    var p = v.play();
+                                    if (p !== undefined) {
+                                        p.then(updateOverlay).catch(function(err) {
+                                            console.warn('Manual playback failed:', err);
+                                            updateOverlay();
+                                        });
+                                    }
+                                } else {
+                                    v.pause();
+                                    updateOverlay();
+                                }
+                            }
 
-                        <!-- Fallback Visual & Center Info for Canvas -->
-                        <div class="hero-video-top-bar" style="display: flex; align-items: center; justify-content: space-between; position: relative; z-index: 2; width: 100%;">
-                            <div class="video-status-chip" style="background: rgba(15, 20, 34, 0.8); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.12); padding: 5px 12px; border-radius: 9999px; font-size: 0.72rem; font-weight: 700; color: #38bdf8; display: inline-flex; align-items: center; gap: 6px; letter-spacing: 0.05em;">
-                                <span class="video-chip-dot" style="width: 6px; height: 6px; border-radius: 50%; background: #38bdf8; box-shadow: 0 0 8px #38bdf8;"></span>
-                                <span>CINEMATIC MOTION CORE</span>
-                            </div>
-                            <div class="video-resolution-tag" style="background: rgba(15, 20, 34, 0.8); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.12); padding: 5px 12px; border-radius: 9999px; font-size: 0.72rem; font-weight: 700; color: #cbd5e1; font-family: 'JetBrains Mono', monospace;">
-                                4K / 24 FPS READY
-                            </div>
-                        </div>
+                            if (btn) btn.addEventListener('click', togglePlay);
+                            v.addEventListener('click', togglePlay);
 
-                        <div class="hero-video-center-visual" style="text-align: center; margin: auto 0; position: relative; z-index: 2;">
-                            <div class="center-lens-ring" style="width: 56px; height: 56px; border-radius: 50%; background: rgba(99, 102, 241, 0.25); border: 1px solid rgba(99, 102, 241, 0.5); display: flex; align-items: center; justify-content: center; margin: 0 auto 12px; backdrop-filter: blur(8px); box-shadow: 0 0 25px rgba(99, 102, 241, 0.4);">
-                                <div class="lens-core-pulse"></div>
-                                <i data-lucide="sparkles" style="width: 26px; height: 26px; color: #ffffff;"></i>
-                            </div>
-                            <div class="center-lens-caption">
-                                <span class="caption-title" style="font-size: 1.15rem; font-weight: 800; color: #ffffff; text-shadow: 0 2px 12px rgba(0,0,0,0.85); display: block;">
-                                    {{ $heroVideoTitle ?? 'Neural Frame Synthesis' }}
-                                </span>
-                                <span class="caption-desc" style="font-size: 0.78rem; color: #cbd5e1; text-shadow: 0 1px 8px rgba(0,0,0,0.85); display: block; margin-top: 4px;">
-                                    {{ $heroVideoCaption ?? 'Spatial Diffusion • Volumetric Lighting • Temporal Consistency' }}
-                                </span>
-                            </div>
-                        </div>
+                            // Initial play trigger
+                            var initPlay = function() {
+                                v.muted = true;
+                                var p = v.play();
+                                if (p !== undefined) {
+                                    p.then(updateOverlay).catch(function() {
+                                        updateOverlay();
+                                        var unlock = function() {
+                                            v.muted = true;
+                                            v.play().then(updateOverlay).catch(updateOverlay);
+                                            window.removeEventListener('touchstart', unlock);
+                                            window.removeEventListener('click', unlock);
+                                            window.removeEventListener('scroll', unlock);
+                                        };
+                                        window.addEventListener('touchstart', unlock, { once: true, passive: true });
+                                        window.addEventListener('click', unlock, { once: true });
+                                        window.addEventListener('scroll', unlock, { once: true, passive: true });
+                                    });
+                                } else {
+                                    updateOverlay();
+                                }
+                            };
 
-                        <div class="hero-video-bottom-bar" style="display: flex; align-items: center; justify-content: space-between; position: relative; z-index: 2; width: 100%;">
-                            <div class="video-info-group" style="display: flex; gap: 8px;">
-                                <span class="info-tag" style="background: rgba(10, 14, 26, 0.75); backdrop-filter: blur(8px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 6px; padding: 4px 10px; font-size: 0.72rem; font-weight: 700; color: #cbd5e1; font-family: 'JetBrains Mono', monospace;">WAN 2.2</span>
-                                <span class="info-tag" style="background: rgba(10, 14, 26, 0.75); backdrop-filter: blur(8px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 6px; padding: 4px 10px; font-size: 0.72rem; font-weight: 700; color: #cbd5e1; font-family: 'JetBrains Mono', monospace;">HUNYUAN-VIDEO</span>
-                                <span class="info-tag" style="background: rgba(10, 14, 26, 0.75); backdrop-filter: blur(8px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 6px; padding: 4px 10px; font-size: 0.72rem; font-weight: 700; color: #cbd5e1; font-family: 'JetBrains Mono', monospace;">DIRECT EXPORT</span>
-                            </div>
-                        </div>
-                    </div>
+                            if (document.readyState === 'complete' || document.readyState === 'interactive') {
+                                initPlay();
+                            } else {
+                                document.addEventListener('DOMContentLoaded', initPlay);
+                            }
+                        })();
+                    </script>
+                </div>
                 </div>
             </div>
         </div>
