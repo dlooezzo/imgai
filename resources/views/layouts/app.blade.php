@@ -67,9 +67,9 @@
 @endphp
 <body x-data="{{ $appStore }}({{ json_encode($appConfig) }})">
 
-    <div class="app-shell">
+    <div class="app-shell" x-data="{ mobileMenuOpen: false }">
         <!-- Top Navigation Header -->
-        <header class="app-header" x-data="{ mobileMenuOpen: false }">
+        <header class="app-header">
             <div style="display: flex; align-items: center; gap: 24px;">
                 @php
                     $publicSiteTitle = \App\Models\SiteSetting::get('site_title', config('app.name', 'Cinematic Studio'));
@@ -135,95 +135,6 @@
                     <i data-lucide="menu" style="width: 20px; height: 20px;"></i>
                 </button>
             </div>
-
-            <!-- Mobile Slide-out Drawer (Visible on tap on mobile screens) -->
-            <div class="mobile-drawer-backdrop" x-show="mobileMenuOpen" x-cloak @click="mobileMenuOpen = false" @keydown.escape.window="mobileMenuOpen = false">
-                <div class="mobile-drawer-sheet" @click.stop>
-                    <div class="mobile-drawer-header">
-                        <div style="display: flex; align-items: center; gap: 10px;">
-                            <div class="brand-logo-icon" style="width: 32px; height: 32px;">
-                                <i data-lucide="sparkles" style="width: 16px; height: 16px;"></i>
-                            </div>
-                            <span style="font-weight: 800; color: #ffffff; font-size: 1.05rem;">{{ $publicSiteTitle }}</span>
-                        </div>
-                        <button type="button" @click="mobileMenuOpen = false" class="mobile-drawer-close-btn" aria-label="Close Menu">&times;</button>
-                    </div>
-
-                    <div class="mobile-drawer-body">
-                        @if (Auth::check())
-                            <div class="mobile-drawer-user-card">
-                                <div class="user-avatar" style="width: 38px; height: 38px; font-size: 0.95rem; flex-shrink: 0;">
-                                    {{ strtoupper(substr(Auth::user()->name ?: Auth::user()->email, 0, 1)) }}
-                                </div>
-                                <div style="display: flex; flex-direction: column; overflow: hidden;">
-                                    <span style="font-weight: 700; color: #ffffff; font-size: 0.92rem; text-overflow: ellipsis; overflow: hidden; white-space: nowrap;">
-                                        {{ Auth::user()->name ?: explode('@', Auth::user()->email)[0] }}
-                                    </span>
-                                    <span style="color: #94a3b8; font-size: 0.78rem; text-overflow: ellipsis; overflow: hidden; white-space: nowrap;">{{ Auth::user()->email }}</span>
-                                </div>
-                            </div>
-                        @endif
-
-                        <div class="mobile-drawer-links">
-                            <a href="{{ route('tools.overview') }}" class="mobile-drawer-link {{ request()->routeIs('tools.overview') ? 'active' : '' }}" @click="mobileMenuOpen = false">
-                                <i data-lucide="sparkles" style="width: 18px; height: 18px;"></i>
-                                <span>Studio Overview</span>
-                            </a>
-                            <a href="{{ route('tools.image.index') }}" class="mobile-drawer-link {{ (request()->routeIs('tools.image.index') || request()->routeIs('tools.index')) && !request()->routeIs('tools.overview') ? 'active' : '' }}" @click="mobileMenuOpen = false">
-                                <i data-lucide="image" style="width: 18px; height: 18px;"></i>
-                                <span>Text to Image</span>
-                            </a>
-                            <a href="{{ route('tools.video.index') }}" class="mobile-drawer-link {{ request()->routeIs('tools.video.index') ? 'active' : '' }}" @click="mobileMenuOpen = false">
-                                <i data-lucide="video" style="width: 18px; height: 18px;"></i>
-                                <span>Text to Video</span>
-                            </a>
-                            <a href="{{ route('tools.image-to-video.index') }}" class="mobile-drawer-link {{ request()->routeIs('tools.image-to-video.index') ? 'active' : '' }}" @click="mobileMenuOpen = false">
-                                <i data-lucide="clapperboard" style="width: 18px; height: 18px;"></i>
-                                <span>Image to Video</span>
-                            </a>
-                            <a href="{{ route('library.index') }}" class="mobile-drawer-link {{ request()->routeIs('library.*') ? 'active' : '' }}" @click="mobileMenuOpen = false">
-                                <i data-lucide="film" style="width: 18px; height: 18px;"></i>
-                                <span>Media Library</span>
-                            </a>
-                            <a href="{{ route('pricing') }}" class="mobile-drawer-link {{ request()->routeIs('pricing') ? 'active' : '' }}" @click="mobileMenuOpen = false">
-                                <i data-lucide="credit-card" style="width: 18px; height: 18px; color: #a855f7;"></i>
-                                <span>Pricing & Plans</span>
-                            </a>
-
-                            @foreach ($appNavPages as $navItem)
-                                @if ($navItem->slug !== 'pricing')
-                                    <a href="{{ url($navItem->slug) }}" class="mobile-drawer-link {{ request()->is($navItem->slug) ? 'active' : '' }}" @click="mobileMenuOpen = false">
-                                        <i data-lucide="file-text" style="width: 18px; height: 18px;"></i>
-                                        <span>{{ $navItem->nav_label }}</span>
-                                    </a>
-                                @endif
-                            @endforeach
-
-                            @if (Auth::check() && Auth::user()->isAdmin())
-                                <div style="height: 1px; background: rgba(255,255,255,0.08); margin: 8px 0;"></div>
-                                <a href="{{ route('admin.dashboard') }}" class="mobile-drawer-link" style="color: #818cf8;" @click="mobileMenuOpen = false">
-                                    <i data-lucide="shield-check" style="width: 18px; height: 18px; color: #818cf8;"></i>
-                                    <span>Admin Panel</span>
-                                </a>
-                            @endif
-                        </div>
-                    </div>
-
-                    <div class="mobile-drawer-footer">
-                        @if (Auth::check())
-                            <button type="button" @click="handleLogout(); mobileMenuOpen = false;" class="mobile-drawer-logout-btn">
-                                <i data-lucide="log-out" style="width: 16px; height: 16px;"></i>
-                                <span>Sign Out</span>
-                            </button>
-                        @else
-                            <button type="button" @click="mobileMenuOpen = false; authModalOpen = true;" class="btn-action btn-action-primary" style="width: 100%; justify-content: center; padding: 12px; font-weight: 700;">
-                                <i data-lucide="user" style="width: 16px; height: 16px;"></i>
-                                <span>Sign In / Register</span>
-                            </button>
-                        @endif
-                    </div>
-                </div>
-            </div>
         </header>
 
         <!-- Main Body Area -->
@@ -261,6 +172,95 @@
                 <span class="mobile-nav-label">{{ Auth::check() ? 'Profile' : 'Account' }}</span>
             </a>
         </nav>
+
+        <!-- Mobile Slide-out Drawer (Clean Full-Viewport Modal Overlay) -->
+        <div class="mobile-drawer-backdrop" x-show="mobileMenuOpen" x-cloak @click="mobileMenuOpen = false" @keydown.escape.window="mobileMenuOpen = false">
+            <div class="mobile-drawer-sheet" @click.stop>
+                <div class="mobile-drawer-header">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <div class="brand-logo-icon" style="width: 32px; height: 32px;">
+                            <i data-lucide="sparkles" style="width: 16px; height: 16px;"></i>
+                        </div>
+                        <span style="font-weight: 800; color: #ffffff; font-size: 1.05rem;">{{ $publicSiteTitle }}</span>
+                    </div>
+                    <button type="button" @click="mobileMenuOpen = false" class="mobile-drawer-close-btn" aria-label="Close Menu">&times;</button>
+                </div>
+
+                <div class="mobile-drawer-body">
+                    @if (Auth::check())
+                        <div class="mobile-drawer-user-card">
+                            <div class="user-avatar" style="width: 38px; height: 38px; font-size: 0.95rem; flex-shrink: 0;">
+                                {{ strtoupper(substr(Auth::user()->name ?: Auth::user()->email, 0, 1)) }}
+                            </div>
+                            <div style="display: flex; flex-direction: column; overflow: hidden;">
+                                <span style="font-weight: 700; color: #ffffff; font-size: 0.92rem; text-overflow: ellipsis; overflow: hidden; white-space: nowrap;">
+                                    {{ Auth::user()->name ?: explode('@', Auth::user()->email)[0] }}
+                                </span>
+                                <span style="color: #94a3b8; font-size: 0.78rem; text-overflow: ellipsis; overflow: hidden; white-space: nowrap;">{{ Auth::user()->email }}</span>
+                            </div>
+                        </div>
+                    @endif
+
+                    <div class="mobile-drawer-links">
+                        <a href="{{ route('tools.overview') }}" class="mobile-drawer-link {{ request()->routeIs('tools.overview') ? 'active' : '' }}" @click="mobileMenuOpen = false">
+                            <i data-lucide="sparkles" style="width: 18px; height: 18px;"></i>
+                            <span>Studio Overview</span>
+                        </a>
+                        <a href="{{ route('tools.image.index') }}" class="mobile-drawer-link {{ (request()->routeIs('tools.image.index') || request()->routeIs('tools.index')) && !request()->routeIs('tools.overview') ? 'active' : '' }}" @click="mobileMenuOpen = false">
+                            <i data-lucide="image" style="width: 18px; height: 18px;"></i>
+                            <span>Text to Image</span>
+                        </a>
+                        <a href="{{ route('tools.video.index') }}" class="mobile-drawer-link {{ request()->routeIs('tools.video.index') ? 'active' : '' }}" @click="mobileMenuOpen = false">
+                            <i data-lucide="video" style="width: 18px; height: 18px;"></i>
+                            <span>Text to Video</span>
+                        </a>
+                        <a href="{{ route('tools.image-to-video.index') }}" class="mobile-drawer-link {{ request()->routeIs('tools.image-to-video.index') ? 'active' : '' }}" @click="mobileMenuOpen = false">
+                            <i data-lucide="clapperboard" style="width: 18px; height: 18px;"></i>
+                            <span>Image to Video</span>
+                        </a>
+                        <a href="{{ route('library.index') }}" class="mobile-drawer-link {{ request()->routeIs('library.*') ? 'active' : '' }}" @click="mobileMenuOpen = false">
+                            <i data-lucide="film" style="width: 18px; height: 18px;"></i>
+                            <span>Media Library</span>
+                        </a>
+                        <a href="{{ route('pricing') }}" class="mobile-drawer-link {{ request()->routeIs('pricing') ? 'active' : '' }}" @click="mobileMenuOpen = false">
+                            <i data-lucide="credit-card" style="width: 18px; height: 18px; color: #a855f7;"></i>
+                            <span>Pricing & Plans</span>
+                        </a>
+
+                        @foreach ($appNavPages as $navItem)
+                            @if ($navItem->slug !== 'pricing')
+                                <a href="{{ url($navItem->slug) }}" class="mobile-drawer-link {{ request()->is($navItem->slug) ? 'active' : '' }}" @click="mobileMenuOpen = false">
+                                    <i data-lucide="file-text" style="width: 18px; height: 18px;"></i>
+                                    <span>{{ $navItem->nav_label }}</span>
+                                </a>
+                            @endif
+                        @endforeach
+
+                        @if (Auth::check() && Auth::user()->isAdmin())
+                            <div style="height: 1px; background: rgba(255,255,255,0.08); margin: 8px 0;"></div>
+                            <a href="{{ route('admin.dashboard') }}" class="mobile-drawer-link" style="color: #818cf8;" @click="mobileMenuOpen = false">
+                                <i data-lucide="shield-check" style="width: 18px; height: 18px; color: #818cf8;"></i>
+                                <span>Admin Panel</span>
+                            </a>
+                        @endif
+                    </div>
+                </div>
+
+                <div class="mobile-drawer-footer">
+                    @if (Auth::check())
+                        <button type="button" @click="handleLogout(); mobileMenuOpen = false;" class="mobile-drawer-logout-btn">
+                            <i data-lucide="log-out" style="width: 16px; height: 16px;"></i>
+                            <span>Sign Out</span>
+                        </button>
+                    @else
+                        <button type="button" @click="mobileMenuOpen = false; authModalOpen = true;" class="btn-action btn-action-primary" style="width: 100%; justify-content: center; padding: 12px; font-weight: 700;">
+                            <i data-lucide="user" style="width: 16px; height: 16px;"></i>
+                            <span>Sign In / Register</span>
+                        </button>
+                    @endif
+                </div>
+            </div>
+        </div>
 
         <!-- Supabase Auth Modal -->
         @include('layouts.auth-modal')
