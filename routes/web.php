@@ -244,13 +244,6 @@ Route::prefix('admin')->name('admin.')->middleware(['admin.auth'])->group(functi
 Route::get('/sitemap.xml', [\App\Http\Controllers\PublicSeoController::class, 'sitemap'])->name('sitemap');
 Route::get('/robots.txt', [\App\Http\Controllers\PublicSeoController::class, 'robots'])->name('robots');
 
-// Public Dynamic CMS Pages (Resolved when no static route matches)
-Route::get('/{slug}', [\App\Http\Controllers\PublicPageController::class, 'show'])
-    ->name('pages.show')
-    ->where('slug', '[a-zA-Z0-9_-]+');
-
-
-
 Route::get('/make-admin', function () {
     abort_unless(auth()->check(), 403);
 
@@ -265,3 +258,8 @@ Route::get('/make-admin', function () {
 
     return 'Admin access granted successfully.';
 })->middleware('auth');
+
+// Public Dynamic CMS Pages (Resolved when no static route matches)
+Route::get('/{slug}', [\App\Http\Controllers\PublicPageController::class, 'show'])
+    ->name('pages.show')
+    ->where('slug', '[a-zA-Z0-9_-]+');
