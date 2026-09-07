@@ -21,9 +21,9 @@
         </div>
 
         <div style="display: flex; align-items: center; gap: 10px;">
-            <a href="{{ route('admin.seo.index') }}" class="btn-action" style="padding: 9px 14px; font-size: 0.84rem;">
+            <a href="{{ route('admin.branding-seo.index') }}" class="btn-action" style="padding: 9px 14px; font-size: 0.84rem;">
                 <i data-lucide="arrow-left" style="width: 15px; height: 15px;"></i>
-                <span>SEO Dashboard</span>
+                <span>Branding & SEO</span>
             </a>
         </div>
     </div>

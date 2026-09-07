@@ -576,9 +576,8 @@
                                     <i data-lucide="trash-2" style="width: 12px; height: 12px;"></i>
                                 </button>
                             </div>
-                        </div>
                     </div>
-                </div>div>
+                </div>
 
                 <div>
                     <button type="submit" class="btn-admin btn-admin-primary" style="padding: 10px 22px;">

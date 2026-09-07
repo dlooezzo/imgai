@@ -33,9 +33,9 @@
                     </a>
                 </li>
                 <li>
-                    <a href="{{ route('admin.branding.index') }}" class="admin-nav-link {{ request()->routeIs('admin.branding.*') ? 'active' : '' }}">
+                    <a href="{{ route('admin.branding-seo.index') }}" class="admin-nav-link {{ request()->routeIs('admin.branding-seo.*') || request()->routeIs('admin.branding.*') ? 'active' : '' }}">
                         <i data-lucide="palette"></i>
-                        <span>Branding & Logo</span>
+                        <span>Branding & SEO</span>
                     </a>
                 </li>
                 <li>
@@ -106,12 +106,6 @@
                     <a href="{{ route('admin.pages.index') }}" class="admin-nav-link {{ request()->routeIs('admin.pages.*') ? 'active' : '' }}">
                         <i data-lucide="file-code"></i>
                         <span>Pages</span>
-                    </a>
-                </li>
-                <li>
-                    <a href="{{ route('admin.seo.index') }}" class="admin-nav-link {{ (request()->routeIs('admin.seo.*') && !request()->routeIs('admin.seo.articles.*')) ? 'active' : '' }}">
-                        <i data-lucide="search"></i>
-                        <span>SEO Dashboard</span>
                     </a>
                 </li>
                 <li>

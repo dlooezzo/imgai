@@ -127,11 +127,21 @@ Route::prefix('admin')->name('admin.')->middleware(['admin.auth'])->group(functi
         Route::delete('/{id}', [\App\Http\Controllers\Admin\VideoController::class, 'destroy'])->name('destroy');
     });
 
-    // Site Branding & Identity
+    // Unified Site Branding & SEO Management
+    Route::prefix('branding-seo')->name('branding-seo.')->group(function () {
+        Route::get('/', [\App\Http\Controllers\Admin\BrandingSeoController::class, 'index'])->name('index');
+        Route::post('/update', [\App\Http\Controllers\Admin\BrandingSeoController::class, 'update'])->name('update');
+        Route::post('/upload-image', [\App\Http\Controllers\Admin\BrandingSeoController::class, 'uploadImage'])->name('upload-image');
+        Route::post('/clear-cache', [\App\Http\Controllers\Admin\BrandingSeoController::class, 'clearCache'])->name('clear-cache');
+    });
+
+    // Backwards Compatibility & Smooth 301 Redirects for Legacy Branding & SEO Routes
     Route::prefix('branding')->name('branding.')->group(function () {
-        Route::get('/', [\App\Http\Controllers\Admin\BrandingController::class, 'index'])->name('index');
-        Route::post('/update', [\App\Http\Controllers\Admin\BrandingController::class, 'update'])->name('update');
-        Route::post('/upload-image', [\App\Http\Controllers\Admin\BrandingController::class, 'uploadImage'])->name('upload-image');
+        Route::get('/', function () {
+            return redirect()->route('admin.branding-seo.index', [], 301);
+        })->name('index');
+        Route::post('/update', [\App\Http\Controllers\Admin\BrandingSeoController::class, 'update'])->name('update');
+        Route::post('/upload-image', [\App\Http\Controllers\Admin\BrandingSeoController::class, 'uploadImage'])->name('upload-image');
     });
 
     // Cloudflare R2 Storage Settings
@@ -184,16 +194,18 @@ Route::prefix('admin')->name('admin.')->middleware(['admin.auth'])->group(functi
         Route::post('/upload-image', [\App\Http\Controllers\Admin\PageController::class, 'uploadImage'])->name('upload-image');
     });
 
-    // SEO Management
+    // SEO Management & Tool Articles
     Route::prefix('seo')->name('seo.')->group(function () {
-        Route::get('/', [\App\Http\Controllers\Admin\SeoController::class, 'index'])->name('index');
-        Route::post('/global', [\App\Http\Controllers\Admin\SeoController::class, 'updateGlobal'])->name('global');
-        Route::post('/homepage', [\App\Http\Controllers\Admin\SeoController::class, 'updateHomepage'])->name('homepage');
-        Route::post('/tools', [\App\Http\Controllers\Admin\SeoController::class, 'updateTools'])->name('tools');
-        Route::post('/verification', [\App\Http\Controllers\Admin\SeoController::class, 'updateVerification'])->name('verification');
-        Route::post('/robots', [\App\Http\Controllers\Admin\SeoController::class, 'updateRobotsTxt'])->name('robots');
-        Route::post('/clear-cache', [\App\Http\Controllers\Admin\SeoController::class, 'clearCache'])->name('clear-cache');
-        Route::post('/upload-image', [\App\Http\Controllers\Admin\SeoController::class, 'uploadImage'])->name('upload-image');
+        Route::get('/', function () {
+            return redirect()->route('admin.branding-seo.index', [], 301);
+        })->name('index');
+        Route::post('/global', [\App\Http\Controllers\Admin\BrandingSeoController::class, 'update'])->name('global');
+        Route::post('/homepage', [\App\Http\Controllers\Admin\BrandingSeoController::class, 'update'])->name('homepage');
+        Route::post('/tools', [\App\Http\Controllers\Admin\BrandingSeoController::class, 'update'])->name('tools');
+        Route::post('/verification', [\App\Http\Controllers\Admin\BrandingSeoController::class, 'update'])->name('verification');
+        Route::post('/robots', [\App\Http\Controllers\Admin\BrandingSeoController::class, 'update'])->name('robots');
+        Route::post('/clear-cache', [\App\Http\Controllers\Admin\BrandingSeoController::class, 'clearCache'])->name('clear-cache');
+        Route::post('/upload-image', [\App\Http\Controllers\Admin\BrandingSeoController::class, 'uploadImage'])->name('upload-image');
 
         // Tool Articles (SEO Content Editor for AI Tools)
         Route::prefix('articles')->name('articles.')->group(function () {

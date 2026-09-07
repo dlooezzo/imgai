@@ -26,9 +26,9 @@
                 </button>
             </form>
 
-            <a href="{{ route('admin.branding.index') }}" class="btn-admin btn-admin-primary">
+            <a href="{{ route('admin.branding-seo.index') }}" class="btn-admin btn-admin-primary">
                 <i data-lucide="palette" style="width: 15px; height: 15px;"></i>
-                <span>Edit Branding & Logo</span>
+                <span>Edit Branding & SEO</span>
             </a>
         </div>
     </div>

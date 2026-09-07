@@ -100,21 +100,22 @@ class AppServiceProvider extends ServiceProvider
         }
 
         // 2. Canonical Application Root URL Configuration
-        // Enforces the verified application URL across routes, assets, and emails,
-        // and provides strict protection against arbitrary HTTP Host Header injection attacks.
-        $canonicalAppUrl = config('app.url');
-        if ($canonicalAppUrl && !in_array($canonicalAppUrl, ['http://localhost', 'https://localhost', 'http://127.0.0.1'])) {
-            URL::forceRootUrl(rtrim($canonicalAppUrl, '/'));
-            if (str_starts_with($canonicalAppUrl, 'https://')) {
-                URL::forceScheme('https');
-            } elseif (str_starts_with($canonicalAppUrl, 'http://')) {
-                URL::forceScheme('http');
+        // In console (queues, CLI, mails), enforce configured canonical APP_URL.
+        // In web requests, strictly preserve the verified request host and scheme (behind trusted proxies)
+        // to prevent cross-domain or cross-protocol cookie drops and 419 Page Expired errors.
+        if ($this->app->runningInConsole()) {
+            $canonicalAppUrl = config('app.url');
+            if ($canonicalAppUrl && !in_array($canonicalAppUrl, ['http://localhost', 'https://localhost', 'http://127.0.0.1'])) {
+                URL::forceRootUrl(rtrim($canonicalAppUrl, '/'));
+                if (str_starts_with($canonicalAppUrl, 'https://')) {
+                    URL::forceScheme('https');
+                }
             }
-        } elseif (!$this->app->runningInConsole() && request()) {
-            // Fallback only when not configured in .env or database
-            $scheme = request()->isSecure() ? 'https' : 'http';
-            $host = preg_replace('/[^a-zA-Z0-9.:-]/', '', request()->getHttpHost());
-            URL::forceRootUrl($scheme . '://' . $host);
+        } else {
+            // Respect HTTPS behind proxies / Cloudflare / Render
+            if (request()->isSecure() || request()->header('X-Forwarded-Proto') === 'https') {
+                URL::forceScheme('https');
+            }
         }
     }
 }
