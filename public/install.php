@@ -47,6 +47,11 @@ if (file_exists(INSTALLER_ROOT_DIR . '/app/Services/InstallerDatabaseService.php
     require_once INSTALLER_ROOT_DIR . '/app/Services/InstallerDatabaseService.php';
 }
 
+// Load InstallerDomainDetector if present
+if (file_exists(INSTALLER_ROOT_DIR . '/app/Services/Installer/InstallerDomainDetector.php')) {
+    require_once INSTALLER_ROOT_DIR . '/app/Services/Installer/InstallerDomainDetector.php';
+}
+
 // 1. SECURITY LOCK: Prevent re-running if installed in RDS or local lock present
 $isAlreadyInstalled = false;
 
@@ -100,28 +105,26 @@ if ($isAlreadyInstalled) {
 }
 
 
-// 2. DOMAIN & PROTOCOL DETECTION (Clean & Canonical)
-$isHttps = (
-    (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ||
-    (!empty($_SERVER['HTTP_X_FORWARDED_PROTO']) && strtolower($_SERVER['HTTP_X_FORWARDED_PROTO']) === 'https') ||
-    (!empty($_SERVER['HTTP_X_FORWARDED_SSL']) && strtolower($_SERVER['HTTP_X_FORWARDED_SSL']) === 'on') ||
-    ($_SERVER['SERVER_PORT'] ?? 80) == 443
-);
-$scheme = $isHttps ? 'https' : 'http';
+// 2. DOMAIN & PROTOCOL DETECTION (Clean, Canonical & Reverse Proxy-Aware)
+if (class_exists(\App\Services\Installer\InstallerDomainDetector::class)) {
+    $detectedAppUrl = \App\Services\Installer\InstallerDomainDetector::detectOrigin($_SERVER);
+} else {
+    $isHttps = (
+        (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ||
+        (!empty($_SERVER['HTTP_X_FORWARDED_PROTO']) && strtolower($_SERVER['HTTP_X_FORWARDED_PROTO']) === 'https') ||
+        (!empty($_SERVER['HTTP_X_FORWARDED_SSL']) && strtolower($_SERVER['HTTP_X_FORWARDED_SSL']) === 'on') ||
+        ($_SERVER['SERVER_PORT'] ?? 80) == 443
+    );
+    $scheme = $isHttps ? 'https' : 'http';
 
-// Read host header safely and sanitize strictly against injection
-$rawHost = $_SERVER['HTTP_HOST'] ?? ($_SERVER['SERVER_NAME'] ?? 'localhost');
-$httpHostClean = preg_replace('/[^a-zA-Z0-9.:-]/', '', $rawHost);
-// Remove default port numbers if explicitly present
-$httpHostClean = preg_replace('/:(80|443)$/', '', $httpHostClean);
+    $rawHost = $_SERVER['HTTP_HOST'] ?? ($_SERVER['SERVER_NAME'] ?? 'localhost');
+    $httpHostClean = preg_replace('/[^a-zA-Z0-9.:-]/', '', $rawHost);
+    $httpHostClean = preg_replace('/:(80|443)$/', '', $httpHostClean);
 
-// Calculate subfolder path if script is located in a subfolder
-$scriptName = str_replace('\\', '/', $_SERVER['SCRIPT_NAME'] ?? '');
-$parentPath = str_replace('\\', '/', dirname($scriptName));
-$scriptDir = trim($parentPath, '/.');
-$baseSubPath = ($scriptDir === '' || $scriptDir === '.' || $scriptDir === 'public') ? '' : '/' . $scriptDir;
+    $detectedAppUrl = rtrim($scheme . '://' . $httpHostClean, '/\\');
+}
 
-$detectedAppUrl = rtrim($scheme . '://' . $httpHostClean . $baseSubPath, '/\\');
+$scheme = parse_url($detectedAppUrl, PHP_URL_SCHEME) ?: 'https';
 
 // .env file paths
 $envFile = INSTALLER_ROOT_DIR . '/.env';
@@ -158,7 +161,7 @@ $envAppUrl = getEnvVal($envContent, 'APP_URL', '');
 $envHost = parse_url($envAppUrl, PHP_URL_HOST);
 $detectedHost = parse_url($detectedAppUrl, PHP_URL_HOST);
 
-if (empty($envAppUrl) || in_array($envAppUrl, ['http://localhost', 'https://localhost']) || ($envHost && $detectedHost && $envHost !== $detectedHost)) {
+if (empty($envAppUrl) || in_array($envAppUrl, ['http://localhost', 'https://localhost']) || ($envHost && $detectedHost && strtolower($envHost) !== strtolower($detectedHost))) {
     $currentAppUrl = $detectedAppUrl;
 } else {
     $currentAppUrl = $envAppUrl;
@@ -179,13 +182,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     // Safely retrieve and validate $appUrl
     $rawAppUrl = trim($_POST['app_url'] ?? '');
     if (!empty($rawAppUrl)) {
-        // Ensure protocol prefix exists, using detected scheme (http or https)
-        if (!preg_match('~^(?:f|ht)tps?://~i', $rawAppUrl)) {
-            $rawAppUrl = $scheme . '://' . ltrim($rawAppUrl, '/');
+        if (class_exists(\App\Services\Installer\InstallerDomainDetector::class)) {
+            $appUrl = \App\Services\Installer\InstallerDomainDetector::cleanOrigin($rawAppUrl);
+        } else {
+            if (!preg_match('~^(?:f|ht)tps?://~i', $rawAppUrl)) {
+                $rawAppUrl = $scheme . '://' . ltrim($rawAppUrl, '/');
+            }
+            $parts = parse_url($rawAppUrl);
+            $cleanScheme = $parts['scheme'] ?? $scheme;
+            $cleanHost = $parts['host'] ?? 'localhost';
+            $portStr = (!empty($parts['port']) && !in_array($parts['port'], [80, 443])) ? ':' . $parts['port'] : '';
+            $appUrl = rtrim($cleanScheme . '://' . $cleanHost . $portStr, '/');
         }
-        $appUrl = rtrim($rawAppUrl, '/');
     } else {
-        $appUrl = rtrim($detectedAppUrl, '/');
+        $appUrl = $detectedAppUrl;
     }
 
     $dbDriver = strtolower(trim($_POST['db_driver'] ?? 'mysql'));
@@ -298,6 +308,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             }
 
             file_put_contents($envFile, $envContent);
+
+            // Ensure APP_URL is strictly idempotent, formatted, and validated
+            if (class_exists(\App\Services\Installer\InstallerDomainDetector::class)) {
+                \App\Services\Installer\InstallerDomainDetector::writeAppUrlToEnv($envFile, $appUrl);
+            }
+
             $logs[] = "📝 تم تحديث ملف الإعدادات .env وربطه بالدومين: " . htmlspecialchars($appUrl);
 
             // Bootstrap Laravel Application for Artisan
@@ -337,7 +353,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                     foreach ($urlSettingsKeys as $key) {
                         $val = \App\Models\SiteSetting::get($key);
                         if (!empty($val) && is_string($val)) {
-                            if (str_contains($val, 'jnifay.com') || (!empty($envHost) && str_contains($val, $envHost))) {
+                            if (!empty($envHost) && str_contains($val, $envHost)) {
                                 $updatedVal = preg_replace('~https?://[^/]+~', $appUrl, $val, 1);
                                 \App\Models\SiteSetting::set($key, $updatedVal);
                                 $logs[] = "🌐 تحديث رابط الإعداد [{$key}] ليتطابق مع الدومين الجديد: " . htmlspecialchars($updatedVal);

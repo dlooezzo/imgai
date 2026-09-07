@@ -18,23 +18,26 @@ class SeoService
      */
     public function getBaseUrl(): string
     {
-        // 1. Check SiteSetting for custom site_url if configured in database
+        // 1. In active HTTP request context (non-console), dynamically derive from trusted request
+        if (function_exists('request') && request() && !app()->runningInConsole()) {
+            $reqOrigin = request()->getSchemeAndHttpHost();
+            if (!empty($reqOrigin) && !in_array($reqOrigin, ['http://localhost', 'https://localhost', 'http://127.0.0.1'])) {
+                return rtrim($reqOrigin, '/');
+            }
+        }
+
+        // 2. Check SiteSetting for custom site_url if configured in database
         try {
             $siteUrl = SiteSetting::get('site_url');
-            if (!empty($siteUrl)) {
+            if (!empty($siteUrl) && !in_array($siteUrl, ['http://localhost', 'https://localhost', 'http://127.0.0.1'])) {
                 return rtrim($siteUrl, '/');
             }
         } catch (\Throwable $e) {}
 
-        // 2. Check config('app.url')
+        // 3. Check config('app.url')
         $url = config('app.url');
         if (!empty($url) && !in_array($url, ['http://localhost', 'https://localhost', 'http://127.0.0.1'])) {
             return rtrim($url, '/');
-        }
-
-        // 3. In HTTP request context, cleanly derive from the verified request
-        if (function_exists('request') && request() && !app()->runningInConsole()) {
-            return rtrim(request()->getSchemeAndHttpHost(), '/');
         }
 
         // 4. Default fallback using Laravel's url helper
