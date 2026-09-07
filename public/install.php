@@ -42,6 +42,11 @@ if (!defined('INSTALLER_LOCK')) define('INSTALLER_LOCK', INSTALLER_ROOT_DIR . '/
 if (!defined('INSTALLER_FALLBACK_LOCK')) define('INSTALLER_FALLBACK_LOCK', __DIR__ . '/installed.lock');
 if (!defined('INSTALLER_ROOT_LOCK')) define('INSTALLER_ROOT_LOCK', INSTALLER_ROOT_DIR . '/.installed');
 
+// Load InstallerDatabaseService if present
+if (file_exists(INSTALLER_ROOT_DIR . '/app/Services/InstallerDatabaseService.php')) {
+    require_once INSTALLER_ROOT_DIR . '/app/Services/InstallerDatabaseService.php';
+}
+
 // 1. SECURITY LOCK: Prevent re-running if installed
 $isAlreadyInstalled = false;
 $allKnownLocks = [
@@ -72,7 +77,13 @@ if (!$isAlreadyInstalled && file_exists($envCheckPath)) {
     }
 }
 
-// Installer status is tracked non-destructively without blocking 403 errors
+// Block any POST re-installation attempt once system is installed
+if ($isAlreadyInstalled && $_SERVER['REQUEST_METHOD'] === 'POST') {
+    http_response_code(403);
+    header('Content-Type: text/html; charset=utf-8');
+    echo '<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>النظام مثبت ومؤمّن</title><style>body{background:#090d16;color:#f8fafc;font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;}</style></head><body><div style="text-align:center;padding:2.5rem;background:#111827;border-radius:16px;border:1px solid rgba(255,255,255,0.1);max-width:520px;"><h2 style="color:#ef4444;margin-bottom:12px;">🔒 نظام التثبيت مؤمّن ومغلق</h2><p style="color:#94a3b8;line-height:1.6;">تم تثبيت وتأمين المشروع مسبقاً لمنع إعادة التشغيل من الإنترنت. لإعادة التهيئة، يجب إزالة ملف storage/installed.lock من الخادم يدوياً.</p><br><a href="/" style="display:inline-block;background:#3b82f6;color:#fff;padding:10px 20px;border-radius:8px;text-decoration:none;font-weight:bold;">الذهاب للرئيسية 🚀</a></div></body></html>';
+    exit;
+}
 
 
 // 2. DOMAIN & PROTOCOL DETECTION (Clean & Canonical)
@@ -209,14 +220,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         } else {
             // MySQL (Default)
             try {
-                $dsn = "mysql:host={$dbHost};port={$dbPort};dbname={$dbName};charset=utf8mb4";
-                $pdo = new PDO($dsn, $dbUser, $dbPass, [
-                    PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-                    PDO::ATTR_TIMEOUT => 5
-                ]);
-                $logs[] = "✅ الاتصال بقاعدة البيانات MySQL تم بنجاح.";
-            } catch (Exception $e) {
-                $error = "فشل الاتصال بقاعدة البيانات MySQL: " . $e->getMessage() . " (تأكد من اسم القاعدة، المستخدم، وكلمة المرور في cPanel)";
+                $provision = \App\Services\InstallerDatabaseService::provisionMysql(
+                    $dbHost,
+                    $dbPort,
+                    $dbUser,
+                    $dbPass,
+                    $dbName
+                );
+                if (!empty($provision['logs'])) {
+                    foreach ($provision['logs'] as $logLine) {
+                        $logs[] = $logLine;
+                    }
+                }
+            } catch (\Throwable $e) {
+                $error = $e->getMessage();
             }
         }
     }
@@ -254,9 +271,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             }
 
             foreach ($envUpdates as $key => $val) {
-                $escapedVal = (strpos($val, ' ') !== false || strpos($val, '#') !== false) ? '"' . $val . '"' : $val;
+                $escapedVal = class_exists(\App\Services\InstallerDatabaseService::class)
+                    ? \App\Services\InstallerDatabaseService::formatEnvValue((string)$val)
+                    : ((strpos($val, ' ') !== false || strpos($val, '#') !== false) ? '"' . addcslashes($val, "\\\"") . '"' : $val);
                 if (preg_match("/^{$key}=.*/m", $envContent)) {
-                    $envContent = preg_replace("/^{$key}=.*/m", "{$key}={$escapedVal}", $envContent);
+                    $envContent = preg_replace_callback("/^{$key}=.*/m", function() use ($key, $escapedVal) {
+                        return "{$key}={$escapedVal}";
+                    }, $envContent);
                 } else {
                     $envContent .= "\n{$key}={$escapedVal}";
                 }
@@ -271,7 +292,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             $kernel = $app->make(\Illuminate\Contracts\Console\Kernel::class);
             $kernel->bootstrap();
 
-            // Run Migrations
+            // After setting up MySQL connection: purge mysql, then update config() before migrations
+            if ($dbDriver === 'mysql') {
+                \Illuminate\Support\Facades\DB::purge('mysql');
+                config([
+                    'database.default' => 'mysql',
+                    'database.connections.mysql.host' => $dbHost,
+                    'database.connections.mysql.port' => (string)$dbPort,
+                    'database.connections.mysql.database' => $dbName,
+                    'database.connections.mysql.username' => $dbUser,
+                    'database.connections.mysql.password' => $dbPass,
+                ]);
+            }
+
+            // Run Migrations (ONLY migrate --force, NO fresh or drops)
             if ($runMigrations) {
                 \Illuminate\Support\Facades\Artisan::call('migrate', ['--force' => true]);
                 $migrateOutput = \Illuminate\Support\Facades\Artisan::output();
@@ -588,8 +622,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         <div style="background: rgba(16, 185, 129, 0.12); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 14px; padding: 1.2rem 1.4rem; margin-bottom: 1.6rem;">
             <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
                 <div>
-                    <span style="display:inline-block; background:rgba(16,185,129,0.25); color:#34d399; padding:4px 12px; border-radius:999px; font-size:0.85rem; font-weight:700; margin-bottom:6px;">نظام التشغيل نشط ومثبت ✅</span>
-                    <p style="margin:0; font-size:0.92rem; color:#cbd5e1; line-height:1.5;">المشروع مهيأ ومثبت بالفعل. يمكنك الانتقال للموقع مباشرة، أو تعديل الإعدادات وقاعدة البيانات أدناه في أي وقت.</p>
+                    <span style="display:inline-block; background:rgba(16,185,129,0.25); color:#34d399; padding:4px 12px; border-radius:999px; font-size:0.85rem; font-weight:700; margin-bottom:6px;">نظام التشغيل نشط ومؤمّن ✅</span>
+                    <p style="margin:0; font-size:0.92rem; color:#cbd5e1; line-height:1.5;">المشروع مهيأ ومثبت بالفعل، وتم قفل التثبيت لمنع إعادة التشغيل من الإنترنت. إذا كنت ترغب بإعادة التثبيت، يجب إزالة ملف storage/installed.lock من الخادم يدوياً.</p>
                 </div>
                 <a href="<?= htmlspecialchars(!empty($currentAppUrl) ? $currentAppUrl : $detectedAppUrl) ?>/tools/overview" style="background:#10b981; color:#fff; padding:0.75rem 1.5rem; border-radius:10px; text-decoration:none; font-weight:700; font-size:0.95rem; white-space:nowrap; box-shadow:0 4px 14px rgba(16,185,129,0.35);">الانتقال للموقع الآن 🚀</a>
             </div>
@@ -618,7 +652,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             <a href="<?= htmlspecialchars($appUrl) ?>/tools/overview" class="btn-submit" style="display:block; text-align:center; text-decoration:none;">الانتقال للموقع الآن 🚀</a>
             <a href="<?= htmlspecialchars($appUrl) ?>/admin/pricing" class="btn-submit" style="display:block; text-align:center; text-decoration:none; background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.2); box-shadow:none;">لوحة تحكم الأسعار والاشتراكات ⚙️</a>
         </div>
-    <?php else: ?>
+    <?php elseif (!$isAlreadyInstalled): ?>
 
         <?php if (!empty($logs)): ?>
             <div class="logs-box"><?= htmlspecialchars(implode("\n", $logs)) ?></div>
