@@ -8,8 +8,11 @@
     </div>
 </div>
 
-    <!-- Main Two-Column Video Generator Grid -->
-    <div class="generator-grid">
+<!-- Glowing Premium AI Tools Crystal Card -->
+@include('tools.partials.crystal-card')
+
+<!-- Main Two-Column Video Generator Grid -->
+<div class="generator-grid">
         <!-- Left Column: Controls & Configuration Panel -->
         <div class="form-panel">
             <!-- Prompt Input Section -->

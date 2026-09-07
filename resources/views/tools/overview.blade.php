@@ -84,15 +84,44 @@
                             loop 
                             muted 
                             playsinline 
+                            webkit-playsinline
+                            x5-playsinline
                             preload="auto"
                             class="hero-video-element" 
                             style="display: block; width: 100%; height: auto; max-width: 100%; max-height: 85vh; object-fit: contain; position: relative; z-index: 2; border: none; background: transparent; box-shadow: none; border-radius: var(--radius-lg, 16px);"
-                            onerror="this.style.display='none'; document.getElementById('hero-video-fallback-canvas').style.display='flex';"
                         >
                             <source src="{{ $heroVideoUrl }}" type="video/mp4">
                             <source src="{{ $heroVideoUrl }}" type="video/webm">
                             <source src="{{ $heroVideoUrl }}" type="video/ogg">
                         </video>
+                        <script>
+                            (function() {
+                                var v = document.getElementById('hero-showcase-video-elem');
+                                if (v) {
+                                    v.muted = true;
+                                    v.defaultMuted = true;
+                                    var tryPlay = function() {
+                                        var p = v.play();
+                                        if (p !== undefined) {
+                                            p.catch(function() {
+                                                var unlock = function() {
+                                                    v.play();
+                                                    window.removeEventListener('touchstart', unlock);
+                                                    window.removeEventListener('click', unlock);
+                                                };
+                                                window.addEventListener('touchstart', unlock, { once: true, passive: true });
+                                                window.addEventListener('click', unlock, { once: true });
+                                            });
+                                        }
+                                    };
+                                    if (document.readyState === 'complete' || document.readyState === 'interactive') {
+                                        tryPlay();
+                                    } else {
+                                        document.addEventListener('DOMContentLoaded', tryPlay);
+                                    }
+                                }
+                            })();
+                        </script>
                     @endif
 
                     <!-- Atmospheric Procedural Canvas — only shown when NO video is present, or as error fallback -->
@@ -145,6 +174,11 @@
             </div>
         </div>
     </section>
+
+    <!-- Glowing Premium AI Tools Crystal Card -->
+    <div style="margin-bottom: 32px;">
+        @include('tools.partials.crystal-card')
+    </div>
 
     <!-- 2. Creative Tools Section -->
     <section id="creative-tools" class="studio-section">

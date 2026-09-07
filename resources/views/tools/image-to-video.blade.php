@@ -13,6 +13,9 @@
     </button>
 </div>
 
+<!-- Glowing Premium AI Tools Crystal Card -->
+@include('tools.partials.crystal-card')
+
 <!-- Main Two-Column Generator Grid (Controls 45% / Canvas 55%) -->
 <div class="generator-grid">
     <!-- Left Column: Controls & Configuration Panel -->
