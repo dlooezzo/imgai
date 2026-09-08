@@ -46,7 +46,7 @@ class ImageToVideoController extends Controller
             'prompt'            => 'required|string|min:1|max:2000',
             'aspect_ratio'      => 'nullable|string|in:16:9,9:16',
             'resolution'        => 'nullable|string|in:720p,480p',
-            'num_frames'        => 'nullable|integer|in:41,81,121',
+            'num_frames'        => 'nullable|integer|min:1|max:500',
             'frames_per_second' => 'nullable|integer|in:16,24',
             'seed'              => 'nullable|integer|min:0|max:2147483647',
         ], [

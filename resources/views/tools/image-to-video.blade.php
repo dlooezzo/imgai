@@ -159,12 +159,28 @@
                 <div class="control-row">
                     <div class="control-label-wrap">
                         <span>Video Frames</span>
-                        <span class="badge-val" x-text="numFrames + ' Frames'"></span>
+                        <span class="badge-val" x-text="numFrames + ' Frames (' + (numFrames / framesPerSecond).toFixed(1) + 's)'"></span>
                     </div>
                     <div class="segmented-group">
                         <button type="button" class="segmented-btn" :class="{ 'active': numFrames === 41 }" @click="!isGenerating && (numFrames = 41)" :disabled="isGenerating">41 (~1.7s)</button>
                         <button type="button" class="segmented-btn" :class="{ 'active': numFrames === 81 }" @click="!isGenerating && (numFrames = 81)" :disabled="isGenerating">81 (~3.4s)</button>
                         <button type="button" class="segmented-btn" :class="{ 'active': numFrames === 121 }" @click="!isGenerating && (numFrames = 121)" :disabled="isGenerating">121 (~5.0s)</button>
+                    </div>
+                    <!-- Manual custom frames input for testing -->
+                    <div style="display: flex; align-items: center; gap: 8px; margin-top: 8px;">
+                        <span style="font-size: 0.78rem; color: var(--text-muted); white-space: nowrap;">Custom:</span>
+                        <input
+                            type="number"
+                            class="text-input"
+                            x-model.number="numFrames"
+                            min="1"
+                            max="500"
+                            step="1"
+                            :disabled="isGenerating"
+                            style="width: 90px; padding: 5px 10px; font-size: 0.84rem; border-radius: 8px; background: rgba(15,20,34,0.8); border: 1px solid rgba(255,255,255,0.12); color: #f8fafc; outline: none;"
+                            placeholder="e.g. 240"
+                        >
+                        <span style="font-size: 0.74rem; color: var(--text-muted);" x-text="'= ' + (numFrames / framesPerSecond).toFixed(1) + 's'"></span>
                     </div>
                 </div>
 
