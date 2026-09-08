@@ -78,8 +78,6 @@
                     <!-- Hero Showcase Video — Clean, frameless, native aspect ratio, guaranteed playback -->
                     <video 
                         id="hero-showcase-video-elem"
-                        src="{{ $heroVideoUrl }}"
-                        poster="{{ $heroVideoPoster ?? asset('videos/hero-showcase-poster.jpg') }}"
                         autoplay 
                         loop 
                         muted 
@@ -88,15 +86,15 @@
                         x5-playsinline
                         preload="auto"
                         class="hero-video-element" 
-                        style="display: block; width: 100%; height: auto; max-width: 100%; max-height: 85vh; object-fit: cover; aspect-ratio: 16 / 9; position: relative; z-index: 2; border: none; background: #07090e; box-shadow: none; border-radius: var(--radius-lg, 16px);"
+                        style="display: block; width: 100%; height: auto; max-width: 100%; max-height: 85vh; object-fit: contain; position: relative; z-index: 2; border: none; background: #07090e; box-shadow: none; border-radius: var(--radius-lg, 16px);"
                     >
                         <source src="{{ $heroVideoUrl }}" type="video/mp4">
                     </video>
 
                     <!-- Mobile / Desktop Interactive Play & Pause Overlay -->
-                    <div id="hero-video-play-overlay" class="hero-video-play-overlay" style="position: absolute; inset: 0; z-index: 5; display: flex; align-items: center; justify-content: center; pointer-events: none; transition: opacity 0.25s ease; opacity: 0; background: rgba(7, 9, 14, 0.25);">
-                        <button type="button" id="hero-video-play-btn" class="hero-video-play-btn" aria-label="Play Video" style="pointer-events: auto; width: 56px; height: 56px; border-radius: 50%; background: rgba(15, 20, 36, 0.85); backdrop-filter: blur(12px); border: 2px solid rgba(168, 85, 247, 0.6); box-shadow: 0 0 25px rgba(168, 85, 247, 0.5), 0 0 45px rgba(6, 182, 212, 0.25); color: #ffffff; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: transform 0.2s ease;">
-                            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" style="margin-left: 2px;"><path d="M8 5v14l11-7z"/></svg>
+                    <div id="hero-video-play-overlay" class="hero-video-play-overlay" style="position: absolute; inset: 0; z-index: 5; display: flex; align-items: center; justify-content: center; pointer-events: none; transition: opacity 0.25s ease; opacity: 0; background: rgba(7, 9, 14, 0.35);">
+                        <button type="button" id="hero-video-play-btn" class="hero-video-play-btn" aria-label="Play Video" style="pointer-events: auto; width: 58px; height: 58px; border-radius: 50%; background: rgba(15, 20, 36, 0.85); backdrop-filter: blur(12px); border: 2px solid rgba(168, 85, 247, 0.6); box-shadow: 0 0 25px rgba(168, 85, 247, 0.5), 0 0 45px rgba(6, 182, 212, 0.25); color: #ffffff; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: transform 0.2s ease;">
+                            <svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" style="margin-left: 2px;"><path d="M8 5v14l11-7z"/></svg>
                         </button>
                     </div>
 
@@ -133,28 +131,11 @@
                             v.addEventListener('play', updateOverlay);
                             v.addEventListener('pause', updateOverlay);
                             v.addEventListener('playing', updateOverlay);
+                            v.addEventListener('ended', updateOverlay);
 
                             v.addEventListener('loadedmetadata', function() {
                                 if (v.videoWidth && v.videoHeight) {
                                     v.style.aspectRatio = v.videoWidth + ' / ' + v.videoHeight;
-                                }
-                            });
-
-                            // Resilient fallback if custom external video URL fails
-                            var fallbackSwitched = false;
-                            v.addEventListener('error', function() {
-                                if (!fallbackSwitched) {
-                                    fallbackSwitched = true;
-                                    var defaultVideo = "{{ asset('videos/hero-showcase.mp4') }}";
-                                    if (v.src !== defaultVideo) {
-                                        console.warn('Hero showcase custom video failed, falling back to local showcase video.');
-                                        v.src = defaultVideo;
-                                        v.load();
-                                        var p = v.play();
-                                        if (p !== undefined) {
-                                            p.then(updateOverlay).catch(updateOverlay);
-                                        }
-                                    }
                                 }
                             });
 
@@ -178,23 +159,23 @@
                             if (btn) btn.addEventListener('click', togglePlay);
                             v.addEventListener('click', togglePlay);
 
-                            // Initial play trigger
+                            // Auto play attempt with user interaction fallback for strict mobile browser policies
                             var initPlay = function() {
                                 v.muted = true;
+                                v.defaultMuted = true;
                                 var p = v.play();
                                 if (p !== undefined) {
                                     p.then(updateOverlay).catch(function() {
                                         updateOverlay();
+                                        // If mobile browser policy blocks autoplay, unlock on first user gesture
                                         var unlock = function() {
                                             v.muted = true;
                                             v.play().then(updateOverlay).catch(updateOverlay);
-                                            window.removeEventListener('touchstart', unlock);
+                                            window.removeEventListener('touchend', unlock);
                                             window.removeEventListener('click', unlock);
-                                            window.removeEventListener('scroll', unlock);
                                         };
-                                        window.addEventListener('touchstart', unlock, { once: true, passive: true });
+                                        window.addEventListener('touchend', unlock, { once: true });
                                         window.addEventListener('click', unlock, { once: true });
-                                        window.addEventListener('scroll', unlock, { once: true, passive: true });
                                     });
                                 } else {
                                     updateOverlay();

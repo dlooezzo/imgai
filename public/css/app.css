@@ -3870,9 +3870,8 @@ input:checked + .slider-round:before {
         max-width: 100% !important;
         min-width: 0 !important;
         height: auto !important;
-        aspect-ratio: 16 / 9 !important;
-        max-height: 55vh !important;
-        object-fit: cover !important;
+        max-height: 65vh !important;
+        object-fit: contain !important;
         display: block !important;
         border-radius: var(--radius-lg, 16px) !important;
         background: #07090e !important;
