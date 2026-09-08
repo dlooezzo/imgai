@@ -2472,7 +2472,7 @@ input:checked + .slider-round:before {
     object-fit: contain;
     border-radius: var(--radius-lg, 16px);
     display: block;
-    background: transparent;
+    background: transparent !important;
     border: none;
     box-shadow: none;
 }
@@ -2487,7 +2487,7 @@ input:checked + .slider-round:before {
     justify-content: space-between;
     padding: 16px;
     overflow: hidden;
-    background: radial-gradient(circle at 50% 40%, #17122e 0%, #090c16 75%, #05070e 100%);
+    background: transparent;
 }
 
 .atmospheric-mesh-grid {
@@ -3874,7 +3874,7 @@ input:checked + .slider-round:before {
         object-fit: contain !important;
         display: block !important;
         border-radius: var(--radius-lg, 16px) !important;
-        background: #07090e !important;
+        background: transparent !important;
     }
 
     .hero-video-play-btn {
@@ -3891,6 +3891,7 @@ input:checked + .slider-round:before {
         aspect-ratio: 16 / 9 !important;
         max-width: 100% !important;
         box-sizing: border-box !important;
+        background: transparent !important;
     }
 
     /* Profile & Dashboard Cards */

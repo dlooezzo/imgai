@@ -86,25 +86,24 @@
                         x5-playsinline
                         preload="auto"
                         class="hero-video-element" 
-                        style="display: block; width: 100%; height: auto; max-width: 100%; max-height: 85vh; object-fit: contain; position: relative; z-index: 2; border: none; background: #07090e; box-shadow: none; border-radius: var(--radius-lg, 16px);"
+                        style="display: block; width: 100%; height: auto; max-width: 100%; max-height: 85vh; object-fit: contain; position: relative; z-index: 2; border: none; background: transparent; box-shadow: none; border-radius: var(--radius-lg, 16px);"
                     >
                         <source src="{{ $heroVideoUrl }}" type="video/mp4">
                     </video>
 
                     <!-- Mobile / Desktop Interactive Play & Pause Overlay -->
-                    <div id="hero-video-play-overlay" class="hero-video-play-overlay" style="position: absolute; inset: 0; z-index: 5; display: flex; align-items: center; justify-content: center; pointer-events: none; transition: opacity 0.25s ease; opacity: 0; background: rgba(7, 9, 14, 0.35);">
+                    <div id="hero-video-play-overlay" class="hero-video-play-overlay" style="position: absolute; inset: 0; z-index: 5; display: flex; align-items: center; justify-content: center; pointer-events: none; transition: opacity 0.25s ease; opacity: 0; background: transparent;">
                         <button type="button" id="hero-video-play-btn" class="hero-video-play-btn" aria-label="Play Video" style="pointer-events: auto; width: 58px; height: 58px; border-radius: 50%; background: rgba(15, 20, 36, 0.85); backdrop-filter: blur(12px); border: 2px solid rgba(168, 85, 247, 0.6); box-shadow: 0 0 25px rgba(168, 85, 247, 0.5), 0 0 45px rgba(6, 182, 212, 0.25); color: #ffffff; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: transform 0.2s ease;">
                             <svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" style="margin-left: 2px;"><path d="M8 5v14l11-7z"/></svg>
                         </button>
                     </div>
 
                     <!-- Atmospheric Procedural Canvas — Underlay & Fallback -->
-                    <div id="hero-video-fallback-canvas" class="hero-video-atmospheric-canvas" style="position: absolute; inset: 0; width: 100%; height: 100%; z-index: 1; pointer-events: none; display: flex;">
+                    <div id="hero-video-fallback-canvas" class="hero-video-atmospheric-canvas" style="position: absolute; inset: 0; width: 100%; height: 100%; z-index: 1; pointer-events: none; display: {{ !empty($heroVideoUrl) ? 'none' : 'flex' }}; background: transparent;">
                         <div class="atmospheric-mesh-grid"></div>
                         <div class="atmospheric-light-orb orb-primary"></div>
                         <div class="atmospheric-light-orb orb-secondary"></div>
                         <div class="atmospheric-light-orb orb-accent"></div>
-                        <div class="atmospheric-vignette" style="position: absolute; inset: 0; background: linear-gradient(180deg, rgba(7, 9, 14, 0.35) 0%, rgba(7, 9, 14, 0.1) 50%, rgba(7, 9, 14, 0.75) 100%), radial-gradient(circle at 50% 50%, transparent 40%, rgba(7, 9, 14, 0.6) 100%);"></div>
                     </div>
 
                     <script>
@@ -137,6 +136,11 @@
                                 if (v.videoWidth && v.videoHeight) {
                                     v.style.aspectRatio = v.videoWidth + ' / ' + v.videoHeight;
                                 }
+                            });
+
+                            v.addEventListener('error', function() {
+                                var fallback = document.getElementById('hero-video-fallback-canvas');
+                                if (fallback) fallback.style.display = 'flex';
                             });
 
                             function togglePlay(e) {

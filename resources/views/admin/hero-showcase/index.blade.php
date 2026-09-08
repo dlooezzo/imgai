@@ -256,7 +256,7 @@
                     <div :style="'width: 100%; max-width: ' + Math.min(calculatedMaxWidth, 560) + 'px; transition: all 0.3s ease; display: flex; justify-content: center;'" style="position: relative;">
                         <!-- Background Video Element -->
                         <template x-if="previewSrc">
-                            <video :src="previewSrc" autoplay loop muted playsinline style="width: 100%; height: auto; object-fit: contain; border-radius: 14px; display: block;"></video>
+                            <video :src="previewSrc" autoplay loop muted playsinline style="width: 100%; height: auto; object-fit: contain; border-radius: 14px; display: block; background: transparent;"></video>
                         </template>
 
                         <template x-if="!previewSrc">
