@@ -21,6 +21,11 @@ class VideoGeneration extends Model
         'source_image_path',
         'aspect_ratio',
         'resolution',
+        'duration',
+        'generate_audio',
+        'seed',
+        'camerafixed',
+        'watermark',
         'width',
         'height',
         'steps',
@@ -41,6 +46,11 @@ class VideoGeneration extends Model
     ];
 
     protected $casts = [
+        'duration'          => 'integer',
+        'generate_audio'    => 'boolean',
+        'seed'              => 'integer',
+        'camerafixed'       => 'boolean',
+        'watermark'         => 'boolean',
         'width'             => 'integer',
         'height'            => 'integer',
         'steps'             => 'integer',

@@ -61,6 +61,7 @@
         'supabaseAnonKey' => $supabaseConfig['anonKey'] ?? '',
         'currentUser' => $authoritativeUser,
         'initialGenerations' => $initialGens,
+        'creditPolicy' => $creditPolicy ?? null,
         'securitySettings' => $securitySettings ?? null,
         'stats' => $stats ?? null,
     ];
@@ -212,7 +213,7 @@
                         </a>
                         <a href="{{ route('tools.video.index') }}" class="mobile-drawer-link {{ request()->routeIs('tools.video.index') ? 'active' : '' }}" @click="mobileMenuOpen = false">
                             <i data-lucide="video" style="width: 18px; height: 18px;"></i>
-                            <span>Text to Video</span>
+                            <span>Text to Video Audio</span>
                         </a>
                         <a href="{{ route('tools.image-to-video.index') }}" class="mobile-drawer-link {{ request()->routeIs('tools.image-to-video.index') ? 'active' : '' }}" @click="mobileMenuOpen = false">
                             <i data-lucide="clapperboard" style="width: 18px; height: 18px;"></i>

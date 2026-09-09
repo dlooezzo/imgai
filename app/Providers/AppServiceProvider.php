@@ -5,7 +5,7 @@ namespace App\Providers;
 use App\Services\AI\Contracts\ImageGenerationInterface;
 use App\Services\AI\Contracts\VideoGenerationInterface;
 use App\Services\AI\MagicApiImageService;
-use App\Services\AI\MagicApiVideoService;
+use App\Services\AI\SeedanceVideoService;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
 
@@ -21,7 +21,7 @@ class AppServiceProvider extends ServiceProvider
         });
 
         $this->app->singleton(VideoGenerationInterface::class, function ($app) {
-            return new MagicApiVideoService();
+            return new SeedanceVideoService();
         });
     }
 

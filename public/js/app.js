@@ -976,16 +976,30 @@ function videoGeneratorApp(config = {}) {
         authFullName: '',
         authMessage: null,
 
-        // Video Generator Parameters
+        // Video Generator Parameters (Seedance 1.5 Pro)
         prompt: '',
+        resolution: '720p',
         aspectRatio: '16:9',
-        frameRate: 24,
-        steps: 30,
-        denoiseStrength: 0.85,
-        guidanceScale: 6.0,
-        flowShift: 9,
-        crf: 19,
+        duration: 5,
+        generateAudio: false,
+        seed: null,
+        camerafixed: false,
+        watermark: false,
         advancedOpen: false,
+
+        // Application Credit Policy Configuration
+        creditPolicy: config.creditPolicy || {
+            base: 5,
+            resolution_multiplier: { '480p': 1, '720p': 2, '1080p': 3 },
+            duration_multiplier: { 5: 1, 8: 2, 12: 3 }
+        },
+
+        get computedCreditCost() {
+            const base = (this.creditPolicy && this.creditPolicy.base) ? this.creditPolicy.base : 5;
+            const resMult = (this.creditPolicy && this.creditPolicy.resolution_multiplier && this.creditPolicy.resolution_multiplier[this.resolution]) ? this.creditPolicy.resolution_multiplier[this.resolution] : 1;
+            const durMult = (this.creditPolicy && this.creditPolicy.duration_multiplier && this.creditPolicy.duration_multiplier[this.duration]) ? this.creditPolicy.duration_multiplier[this.duration] : 1;
+            return Math.max(1, base * resMult * durMult);
+        },
 
         // Video Generation State
         isGenerating: false,
@@ -1103,12 +1117,12 @@ function videoGeneratorApp(config = {}) {
         resetToolState() {
             this.prompt = '';
             this.aspectRatio = '16:9';
-            this.frameRate = 24;
-            this.steps = 30;
-            this.denoiseStrength = 0.85;
-            this.guidanceScale = 6.0;
-            this.flowShift = 9;
-            this.crf = 19;
+            this.resolution = '720p';
+            this.duration = 5;
+            this.generateAudio = false;
+            this.seed = null;
+            this.camerafixed = false;
+            this.watermark = false;
             this.advancedOpen = false;
             this.elapsedSeconds = 0;
             this.statusMessage = '';
@@ -1143,7 +1157,7 @@ function videoGeneratorApp(config = {}) {
 
             this.isGenerating = true;
             this.generationStatus = 'starting';
-            this.statusMessage = 'Submitting prompt to Hunyuan-Video Engine...';
+            this.statusMessage = 'Submitting prompt to Seedance 1.5 Pro Engine...';
             this.elapsedSeconds = 0;
             this.startMessageCycle();
             if (this.neuralPulse) this.neuralPulse.setMode('generating');
@@ -1164,13 +1178,13 @@ function videoGeneratorApp(config = {}) {
                     },
                     body: JSON.stringify({
                         prompt: this.prompt,
-                        aspect_ratio: this.aspectRatio,
-                        frame_rate: parseInt(this.frameRate),
-                        steps: parseInt(this.steps),
-                        denoise_strength: parseFloat(this.denoiseStrength),
-                        guidance_scale: parseFloat(this.guidanceScale),
-                        flow_shift: parseInt(this.flowShift),
-                        crf: parseInt(this.crf),
+                        resolution: this.resolution,
+                        ratio: this.aspectRatio,
+                        duration: parseInt(this.duration),
+                        generate_audio: !!this.generateAudio,
+                        seed: (this.seed !== null && this.seed !== '' && !isNaN(this.seed)) ? parseInt(this.seed) : undefined,
+                        camerafixed: !!this.camerafixed,
+                        watermark: !!this.watermark,
                     })
                 });
 
@@ -1197,6 +1211,10 @@ function videoGeneratorApp(config = {}) {
                 this.currentGeneration = generation;
                 this.statusMessage = 'Video synthesis queued. Rendering motion frames...';
                 this.generationStatus = generation.status || 'starting';
+
+                if (data.credit_balance !== undefined && this.user) {
+                    this.user.credit_balance = data.credit_balance;
+                }
 
                 if (!this.historyList.some(item => item.id === generation.id)) {
                     this.historyList.unshift(generation);
@@ -1370,13 +1388,13 @@ function videoGeneratorApp(config = {}) {
                             this.generationStatus = 'cancelled';
                             this.showToast('Video generation was cancelled.', 'info');
                         } else {
-                            if (gen.status === 'starting') {
-                                this.statusMessage = 'Allocating Hunyuan-Video GPU compute node...';
+                            if (gen.status === 'starting' || gen.status === 'submitted') {
+                                this.statusMessage = 'Allocating Seedance GPU compute node...';
                             } else if (gen.status === 'processing') {
                                 if (this.elapsedSeconds > 25) {
-                                    this.statusMessage = 'Encoding high-definition motion video frames...';
+                                    this.statusMessage = 'Synthesizing high-definition frames and audio tracks...';
                                 } else {
-                                    this.statusMessage = 'Synthesizing temporal diffusion motion passes...';
+                                    this.statusMessage = 'Rendering motion and audio generation...';
                                 }
                             }
                         }
@@ -1399,7 +1417,7 @@ function videoGeneratorApp(config = {}) {
 
         selectGeneration(item) {
             this.currentGeneration = item;
-            if (['starting', 'processing'].includes(item.status)) {
+            if (['starting', 'processing', 'submitted'].includes(item.status)) {
                 this.resumePendingGeneration(item);
             } else {
                 this.isGenerating = false;
@@ -1410,12 +1428,20 @@ function videoGeneratorApp(config = {}) {
 
         remixPrompt(item) {
             if (this.isGenerating) return;
-            this.prompt = item.prompt;
+            this.prompt = item.prompt || '';
             this.aspectRatio = item.aspect_ratio || '16:9';
-            this.frameRate = item.frame_rate || 24;
-            this.steps = item.steps || 30;
-            if (item.denoise_strength) this.denoiseStrength = item.denoise_strength;
-            if (item.guidance_scale) this.guidanceScale = item.guidance_scale;
+            this.resolution = item.resolution || '720p';
+            this.duration = item.duration || 5;
+            this.generateAudio = !!item.generate_audio;
+            if (item.seed !== null && item.seed !== undefined) {
+                this.seed = item.seed;
+            }
+            if (item.camerafixed !== undefined) {
+                this.camerafixed = !!item.camerafixed;
+            }
+            if (item.watermark !== undefined) {
+                this.watermark = !!item.watermark;
+            }
             this.showToast('Loaded settings from video into editor', 'info');
         },
 

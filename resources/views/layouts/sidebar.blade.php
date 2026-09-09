@@ -21,10 +21,10 @@
             <span>Image Generator</span>
         </a>
 
-        <!-- Text to Video Generator -->
+        <!-- Text to Video Audio Generator -->
         <a href="{{ route('tools.video.index') }}" class="tool-nav-item {{ ($activeTool ?? '') === 'video-generator' ? 'active' : '' }}">
             <i data-lucide="video" class="tool-icon"></i>
-            <span>Text to Video</span>
+            <span>Text to Video Audio</span>
         </a>
 
         <!-- Image to Video Generator -->

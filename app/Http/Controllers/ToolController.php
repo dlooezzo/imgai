@@ -120,10 +120,25 @@ class ToolController extends Controller
             ->where('status', 'published')
             ->first();
 
+        $creditPolicy = config('credits.text_to_video_audio', [
+            'base' => (int) config('credits.costs.video_generation', 5),
+            'resolution_multiplier' => [
+                '480p'  => 1,
+                '720p'  => 2,
+                '1080p' => 3,
+            ],
+            'duration_multiplier' => [
+                5  => 1,
+                8  => 2,
+                12 => 3,
+            ],
+        ]);
+
         return view('tools.index', [
             'activeTool' => 'video-generator',
             'videoGenerations' => $videoGenerations,
             'toolArticle' => $toolArticle,
+            'creditPolicy' => $creditPolicy,
             'supabaseConfig' => $supabaseConfig,
             'currentUser' => session('supabase_user'),
         ]);

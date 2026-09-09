@@ -43,16 +43,23 @@ class VideoGeneratorController extends Controller
             ], 401);
         }
 
-        // 1. Resolve User and check credit balance
+        // 1. Resolve parameters and calculate dynamic credit cost
+        $resolution = $validated['resolution'] ?? '720p';
+        $duration = (int) ($validated['duration'] ?? 5);
+        $ratio = $validated['ratio'] ?? ($validated['aspect_ratio'] ?? '16:9');
+        $validated['resolution'] = $resolution;
+        $validated['duration'] = $duration;
+        $validated['ratio'] = $ratio;
+
         $user = $request->user() ?: User::where('id', $userId)->orWhere('email', session('supabase_user.email'))->first();
-        $creditCost = (int) config('credits.costs.video_generation', 5);
+        $creditCost = $this->calculateCreditCost($resolution, $duration);
 
         if (!$user || !$this->creditService->hasEnoughCredits($user, $creditCost)) {
             $currentBalance = $user ? $this->creditService->getBalance($user) : 0;
             return response()->json([
                 'success' => false,
                 'error' => 'insufficient_credits',
-                'message' => "Insufficient credits. Generating a video requires {$creditCost} credit(s), but your current balance is {$currentBalance}.",
+                'message' => "Insufficient credits. Generating a {$resolution} ({$duration}s) video requires {$creditCost} credit(s), but your current balance is {$currentBalance}.",
                 'required_credits' => $creditCost,
                 'current_balance' => $currentBalance,
             ], 402);
@@ -69,47 +76,24 @@ class VideoGeneratorController extends Controller
         );
 
         try {
-            // Initiate prediction via video service
+            // Initiate prediction via video service (Seedance 1.5 Pro)
             $prediction = $this->videoService->createPrediction($validated);
-
-            // Compute dimensions for Pure Text-to-Video
-            $width = (int) ($validated['width'] ?? 864);
-            $height = (int) ($validated['height'] ?? 480);
-            $aspectRatio = $validated['aspect_ratio'] ?? '16:9';
-
-            if ($aspectRatio === '16:9') {
-                $width = 864;
-                $height = 480;
-            } elseif ($aspectRatio === '9:16') {
-                $width = 480;
-                $height = 864;
-            } elseif ($aspectRatio === '4:3') {
-                $width = 768;
-                $height = 576;
-            } elseif ($aspectRatio === '21:9') {
-                $width = 1024;
-                $height = 432;
-            } elseif ($aspectRatio === '1:1') {
-                $width = 512;
-                $height = 512;
-            }
 
             // Create record in database with 24h expiration
             $videoGeneration = VideoGeneration::create([
                 'user_id' => $userId,
+                'generation_type' => 'text-to-video',
                 'prediction_id' => $prediction['prediction_id'],
                 'prompt' => $validated['prompt'],
-                'aspect_ratio' => $aspectRatio,
-                'width' => $width,
-                'height' => $height,
-                'steps' => (int) ($validated['steps'] ?? 30),
-                'crf' => (int) ($validated['crf'] ?? 19),
-                'flow_shift' => (int) ($validated['flow_shift'] ?? 9),
-                'frame_rate' => (int) ($validated['frame_rate'] ?? 24),
-                'guidance_scale' => (float) ($validated['guidance_scale'] ?? 6.0),
-                'denoise_strength' => (float) ($validated['denoise_strength'] ?? 0.85),
-                'model_version' => $prediction['version'] ?? '6c9132aee14409cd6568d030453f1ba50f5f3412b844fe67f78a9eb62d55664f',
-                'status' => strtolower($prediction['status'] ?? 'starting'),
+                'aspect_ratio' => $ratio,
+                'resolution' => $resolution,
+                'duration' => $duration,
+                'generate_audio' => (bool) ($validated['generate_audio'] ?? false),
+                'seed' => isset($validated['seed']) && is_numeric($validated['seed']) ? (int) $validated['seed'] : null,
+                'camerafixed' => (bool) ($validated['camerafixed'] ?? false),
+                'watermark' => (bool) ($validated['watermark'] ?? false),
+                'model_version' => $prediction['version'] ?? 'seedance-1.5-pro',
+                'status' => strtolower($prediction['status'] ?? 'submitted'),
                 'expires_at' => now()->addHours(24),
             ]);
 
@@ -246,7 +230,7 @@ class VideoGeneratorController extends Controller
                         ->exists();
 
                     if (!$alreadyRefunded) {
-                        $cost = (int) config('credits.costs.video_generation', 5);
+                        $cost = $this->getDeductedCreditsForGeneration($videoGeneration);
                         try {
                             $this->creditService->refundCredits(
                                 user: $videoGeneration->user_id,
@@ -342,7 +326,7 @@ class VideoGeneratorController extends Controller
                 ->where('type', 'generation_refund')
                 ->exists();
             if (!$alreadyRefunded) {
-                $cost = (int) config('credits.costs.video_generation', 5);
+                $cost = $this->getDeductedCreditsForGeneration($videoGeneration);
                 try {
                     $this->creditService->refundCredits(
                         user: $videoGeneration->user_id,
@@ -442,5 +426,48 @@ class VideoGeneratorController extends Controller
             'success' => true,
             'message' => 'Video generation deleted successfully.',
         ]);
+    }
+
+    /**
+     * Calculate required credit cost based on application-level pricing policy.
+     * Formula: base * resolution_multiplier * duration_multiplier
+     */
+    public function calculateCreditCost(string $resolution = '720p', int $duration = 5): int
+    {
+        $base = (int) config('credits.text_to_video_audio.base', config('credits.costs.video_generation', 5));
+        $resMultipliers = config('credits.text_to_video_audio.resolution_multiplier', [
+            '480p'  => 1,
+            '720p'  => 2,
+            '1080p' => 3,
+        ]);
+        $durMultipliers = config('credits.text_to_video_audio.duration_multiplier', [
+            5  => 1,
+            8  => 2,
+            12 => 3,
+        ]);
+
+        $resMult = (int) ($resMultipliers[$resolution] ?? 1);
+        $durMult = (int) ($durMultipliers[$duration] ?? 1);
+
+        return max(1, $base * $resMult * $durMult);
+    }
+
+    /**
+     * Find how many credits were originally deducted for a generation.
+     */
+    protected function getDeductedCreditsForGeneration(VideoGeneration $videoGeneration): int
+    {
+        $creditTxn = CreditTransaction::where('reference_id', $videoGeneration->id)
+            ->where('type', 'generation_deduction')
+            ->first();
+
+        if ($creditTxn && $creditTxn->amount < 0) {
+            return abs($creditTxn->amount);
+        }
+
+        return $this->calculateCreditCost(
+            $videoGeneration->resolution ?? '720p',
+            (int) ($videoGeneration->duration ?? 5)
+        );
     }
 }
