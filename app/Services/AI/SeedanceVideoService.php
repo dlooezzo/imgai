@@ -183,6 +183,13 @@ class SeedanceVideoService implements VideoGenerationInterface
             $statusCode = $response->status();
             $rawBody    = $response->body();
 
+            // Log the raw response for debugging
+            Log::info("SeedanceVideoService: Raw status response", [
+                'prediction_id' => $predictionId,
+                'http_status'   => $statusCode,
+                'raw_body'      => $rawBody,
+            ]);
+
             // Transient server errors — continue polling
             if (in_array($statusCode, [429, 500, 502, 503, 504])) {
                 Log::warning("SeedanceVideoService: Transient HTTP {$statusCode} on status poll for {$predictionId}. Will retry.");
@@ -205,6 +212,7 @@ class SeedanceVideoService implements VideoGenerationInterface
 
                 Log::error("SeedanceVideoService: Status poll failed HTTP {$statusCode} for {$predictionId}", [
                     'error' => $errorMessage,
+                    'response' => $rawBody,
                 ]);
 
                 throw new Exception("Seedance Status API Error ({$statusCode}): {$errorMessage}");
@@ -212,28 +220,49 @@ class SeedanceVideoService implements VideoGenerationInterface
 
             $data = $response->json();
 
+            // Log parsed data
+            Log::info("SeedanceVideoService: Parsed status data", [
+                'prediction_id' => $predictionId,
+                'api_status'    => $data['status'] ?? 'missing',
+                'api_output'    => $data['output'] ?? 'missing',
+                'api_error'     => $data['error'] ?? 'missing',
+            ]);
+
             // Extract video_url from output object (as per API spec: output.video_url)
             $outputUrl = null;
             if (!empty($data['output']) && is_array($data['output'])) {
-                $outputUrl = $data['output']['video_url'] ?? null;
+                $outputUrl = $data['output']['video_url'] ?? ($data['output']['url'] ?? null);
             } elseif (!empty($data['output']) && is_string($data['output'])) {
                 // Defensive: handle if output is returned as direct string
                 $outputUrl = $data['output'];
             }
 
-            $status = strtolower(trim($data['status'] ?? 'processing'));
+            // Handle various status values from Seedance API
+            $rawStatus = $data['status'] ?? $data['state'] ?? $data['job_status'] ?? 'processing';
+            $status = strtolower(trim($rawStatus));
 
-            Log::info("SeedanceVideoService: Status poll for {$predictionId}", [
-                'status'     => $status,
-                'output_url' => $outputUrl,
-                'http_status'=> $statusCode,
+            // Map known completion statuses
+            $completedStatuses = ['succeeded', 'success', 'completed', 'finished', 'done'];
+            $failedStatuses = ['failed', 'error', 'cancelled', 'canceled'];
+
+            if (in_array($status, $completedStatuses, true)) {
+                $status = 'succeeded';
+            } elseif (in_array($status, $failedStatuses, true)) {
+                $status = 'failed';
+            }
+
+            Log::info("SeedanceVideoService: Mapped status", [
+                'prediction_id' => $predictionId,
+                'raw_status'    => $rawStatus,
+                'mapped_status' => $status,
+                'output_url'    => $outputUrl,
             ]);
 
             return [
                 'id'          => $data['id'] ?? $predictionId,
                 'status'      => $status,
                 'output'      => $outputUrl,
-                'error'       => $data['error'] ?? null,
+                'error'       => $data['error'] ?? $data['message'] ?? null,
                 'http_status' => $statusCode,
                 'raw_body'    => $rawBody,
                 'raw'         => $data,

@@ -172,17 +172,23 @@ class VideoGeneratorController extends Controller
 
         try {
             $predictionStatus = $this->videoService->getPredictionStatus($videoGeneration->prediction_id);
-            $status = strtolower($predictionStatus['status'] ?? 'processing');
+            $status = $predictionStatus['status'] ?? 'processing';
             $httpStatus = $predictionStatus['http_status'] ?? 200;
             $rawBody = $predictionStatus['raw_body'] ?? json_encode($predictionStatus['raw'] ?? []);
             $outputUrl = $predictionStatus['output'] ?? null;
+            $apiError = $predictionStatus['error'] ?? null;
+
+            // Increment poll_attempts
+            $videoGeneration->increment('poll_attempts');
 
             Log::info("[VIDEO POLL]\n".
                 "- Local Generation ID: {$videoGeneration->id}\n".
                 "- Prediction ID: {$videoGeneration->prediction_id}\n".
+                "- Poll Attempt: {$videoGeneration->poll_attempts}\n".
                 "- HTTP Status: {$httpStatus}\n".
+                "- API Status: {$status}\n".
+                "- API Error: " . ($apiError ?? 'none') . "\n".
                 "- Raw Response Body: {$rawBody}\n".
-                "- Parsed API Status: {$status}\n".
                 '- Parsed Output URL: '.($outputUrl ?: 'null'));
 
             // RACE-CONDITION PROTECTION: Check if generation was cancelled during poll

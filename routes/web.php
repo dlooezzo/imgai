@@ -282,6 +282,89 @@ Route::prefix('admin')->name('admin.')->middleware(['admin.auth'])->group(functi
     Route::post('/settings/migrate', [SettingsController::class, 'runMigrations'])->name('settings.migrate');
 });
 
+// Seedance API Diagnostic Route (TEMPORARY - for production debugging)
+Route::prefix('diagnostic')->name('diagnostic.')->group(function () {
+    Route::get('/seedance-test', function () {
+        $baseUrl = config('services.magicapi.seedance_video_base_url') ?: env('SEEDANCE_VIDEO_BASE_URL');
+        $apiKey = config('services.magicapi.key') ?: env('API_MARKET_KEY');
+        
+        if (empty($baseUrl) || empty($apiKey) || str_contains($apiKey, 'YOUR_API_MARKET_KEY')) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Configuration missing',
+                'details' => [
+                    'base_url' => $baseUrl ? 'SET' : 'MISSING',
+                    'api_key' => $apiKey && !str_contains($apiKey, 'YOUR_API_MARKET_KEY') ? 'SET (masked: '.substr($apiKey, 0, 8).'...)' : 'MISSING',
+                ],
+            ], 500);
+        }
+        
+        // Test submit
+        $parameters = [
+            'prompt'         => 'A person walking slowly through a beautiful city street at sunset, cinematic camera movement.',
+            'resolution'     => '480p',
+            'ratio'          => '16:9',
+            'duration'       => 5,
+            'generate_audio' => false,
+        ];
+        
+        $service = new \App\Services\AI\SeedanceVideoService();
+        
+        try {
+            $submitResult = $service->createPrediction($parameters);
+            
+            if (empty($submitResult['prediction_id'])) {
+                return response()->json([
+                    'success' => false,
+                    'stage' => 'submit',
+                    'error' => 'No prediction_id returned',
+                    'response' => $submitResult,
+                ], 500);
+            }
+            
+            $jobId = $submitResult['prediction_id'];
+            
+            // Poll status a few times
+            $polls = [];
+            for ($i = 1; $i <= 6; $i++) {  // 6 polls x 10s = 60s max
+                $statusResult = $service->getPredictionStatus($jobId);
+                $polls[] = [
+                    'poll' => $i,
+                    'http_status' => $statusResult['http_status'],
+                    'status' => $statusResult['status'],
+                    'output_url' => $statusResult['output'],
+                    'error' => $statusResult['error'],
+                    'raw_status' => $statusResult['raw']['status'] ?? 'missing',
+                    'raw_output' => $statusResult['raw']['output'] ?? 'missing',
+                ];
+                
+                if (in_array($statusResult['status'], ['failed', 'error'], true)) {
+                    break;
+                }
+                if ($statusResult['status'] === 'succeeded' && !empty($statusResult['output'])) {
+                    break;
+                }
+                if ($i < 6) sleep(10);
+            }
+            
+            return response()->json([
+                'success' => true,
+                'submit' => $submitResult,
+                'polls' => $polls,
+                'final_status' => end($polls)['status'] ?? 'unknown',
+                'video_url_received' => !empty(end($polls)['output_url']),
+            ]);
+            
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ], 500);
+        }
+    })->name('seedance-test');
+});
+
 // Technical SEO Endpoints
 Route::get('/sitemap.xml', [PublicSeoController::class, 'sitemap'])->name('sitemap');
 Route::get('/robots.txt', [PublicSeoController::class, 'robots'])->name('robots');
