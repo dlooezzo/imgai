@@ -291,6 +291,9 @@ window.NeuralPulseAnimation = NeuralPulseAnimation;
 // ==========================================
 function imageGeneratorApp(config = {}) {
     return {
+        // Mobile Navigation State
+        mobileMenuOpen: false,
+
         // Config & Auth State
         supabaseUrl: config.supabaseUrl || '',
         supabaseAnonKey: config.supabaseAnonKey || '',
@@ -963,6 +966,9 @@ window.imageGeneratorApp = imageGeneratorApp;
 // ==========================================
 function videoGeneratorApp(config = {}) {
     return {
+        // Mobile Navigation State
+        mobileMenuOpen: false,
+
         // Config & Auth State
         supabaseUrl: config.supabaseUrl || '',
         supabaseAnonKey: config.supabaseAnonKey || '',
@@ -987,18 +993,47 @@ function videoGeneratorApp(config = {}) {
         watermark: false,
         advancedOpen: false,
 
-        // Application Credit Policy Configuration
+        // Explicit Setter Methods for Instant Alpine Reactivity
+        setDuration(val) {
+            if (this.isGenerating) return;
+            this.duration = parseInt(val);
+        },
+        setResolution(val) {
+            if (this.isGenerating) return;
+            this.resolution = String(val);
+        },
+        setAspectRatio(val) {
+            if (this.isGenerating) return;
+            this.aspectRatio = String(val);
+        },
+        setGenerateAudio(val) {
+            if (this.isGenerating) return;
+            this.generateAudio = Boolean(val);
+        },
+
+        // Application Credit Policy — loaded from DB-backed AiCreditPricingService via PHP.
+        // Includes audio_multiplier so the preview stays accurate when admin changes pricing.
         creditPolicy: config.creditPolicy || {
             base: 5,
             resolution_multiplier: { '480p': 1, '720p': 2, '1080p': 3 },
-            duration_multiplier: { 5: 1, 8: 2, 12: 3 }
+            duration_multiplier: { 5: 1, 8: 2, 12: 3 },
+            audio_multiplier: { 'no': 1, 'yes': 2 }
         },
 
         get computedCreditCost() {
-            const base = (this.creditPolicy && this.creditPolicy.base) ? this.creditPolicy.base : 5;
-            const resMult = (this.creditPolicy && this.creditPolicy.resolution_multiplier && this.creditPolicy.resolution_multiplier[this.resolution]) ? this.creditPolicy.resolution_multiplier[this.resolution] : 1;
-            const durMult = (this.creditPolicy && this.creditPolicy.duration_multiplier && this.creditPolicy.duration_multiplier[this.duration]) ? this.creditPolicy.duration_multiplier[this.duration] : 1;
-            return Math.max(1, base * resMult * durMult);
+            const policy       = this.creditPolicy || {};
+            const base         = Number(policy.base || 5);
+            const resMults     = policy.resolution_multiplier || { '480p': 1, '720p': 2, '1080p': 3 };
+            const durMults     = policy.duration_multiplier   || { 5: 1, 8: 2, 12: 3 };
+            const audioMults   = policy.audio_multiplier      || { 'no': 1, 'yes': 2 };
+
+            const resMult   = Number(resMults[this.resolution] ?? 1);
+            const durKey    = this.duration !== undefined ? this.duration : 5;
+            const durMult   = Number(durMults[durKey] !== undefined ? durMults[durKey] : (durMults[parseInt(durKey)] ?? 1));
+            const audioKey  = this.generateAudio ? 'yes' : 'no';
+            const audioMult = Number(audioMults[audioKey] ?? (this.generateAudio ? 2 : 1));
+
+            return Math.max(1, base * resMult * durMult * audioMult);
         },
 
         // Video Generation State
@@ -1636,6 +1671,9 @@ window.videoGeneratorApp = videoGeneratorApp;
 // ==========================================
 function imageToVideoApp(config = {}) {
     return {
+        // Mobile Navigation State
+        mobileMenuOpen: false,
+
         // Config & Auth State
         supabaseUrl: config.supabaseUrl || '',
         supabaseAnonKey: config.supabaseAnonKey || '',
@@ -2318,6 +2356,9 @@ window.imageToVideoApp = imageToVideoApp;
 // ==========================================
 function profileApp(config = {}) {
     return {
+        // Mobile Navigation State
+        mobileMenuOpen: false,
+
         supabaseUrl: config.supabaseUrl || '',
         supabaseAnonKey: config.supabaseAnonKey || '',
         supabase: null,

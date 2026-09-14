@@ -7,6 +7,7 @@ use App\Models\CreditTransaction;
 use App\Models\User;
 use App\Models\VideoGeneration;
 use App\Services\AI\Contracts\VideoGenerationInterface;
+use App\Services\Credits\AiCreditPricingService;
 use App\Services\Credits\CreditService;
 use Exception;
 use Illuminate\Http\JsonResponse;
@@ -18,12 +19,19 @@ use Illuminate\Support\Str;
 class VideoGeneratorController extends Controller
 {
     protected VideoGenerationInterface $videoService;
+
     protected CreditService $creditService;
 
-    public function __construct(VideoGenerationInterface $videoService, CreditService $creditService)
-    {
+    protected AiCreditPricingService $pricingService;
+
+    public function __construct(
+        VideoGenerationInterface $videoService,
+        CreditService $creditService,
+        AiCreditPricingService $pricingService
+    ) {
         $this->videoService = $videoService;
         $this->creditService = $creditService;
+        $this->pricingService = $pricingService;
     }
 
     /**
@@ -34,7 +42,7 @@ class VideoGeneratorController extends Controller
         $validated = $request->validated();
         $userId = session('supabase_user_id') ?? ($request->user() ? (string) $request->user()->id : null);
 
-        if (!$userId) {
+        if (! $userId) {
             return response()->json([
                 'success' => false,
                 'error' => 'Authentication required. Please sign in or register to generate videos.',
@@ -43,19 +51,22 @@ class VideoGeneratorController extends Controller
             ], 401);
         }
 
-        // 1. Resolve parameters and calculate dynamic credit cost
+        // 1. Resolve parameters and calculate dynamic credit cost from DB-backed pricing service
         $resolution = $validated['resolution'] ?? '720p';
         $duration = (int) ($validated['duration'] ?? 5);
+        $generateAudio = (bool) ($validated['generate_audio'] ?? false);
         $ratio = $validated['ratio'] ?? ($validated['aspect_ratio'] ?? '16:9');
         $validated['resolution'] = $resolution;
         $validated['duration'] = $duration;
+        $validated['generate_audio'] = $generateAudio;
         $validated['ratio'] = $ratio;
 
         $user = $request->user() ?: User::where('id', $userId)->orWhere('email', session('supabase_user.email'))->first();
-        $creditCost = $this->calculateCreditCost($resolution, $duration);
+        $creditCost = $this->pricingService->calculateTextToVideoCost($resolution, $duration, $generateAudio);
 
-        if (!$user || !$this->creditService->hasEnoughCredits($user, $creditCost)) {
+        if (! $user || ! $this->creditService->hasEnoughCredits($user, $creditCost)) {
             $currentBalance = $user ? $this->creditService->getBalance($user) : 0;
+
             return response()->json([
                 'success' => false,
                 'error' => 'insufficient_credits',
@@ -80,6 +91,8 @@ class VideoGeneratorController extends Controller
             $prediction = $this->videoService->createPrediction($validated);
 
             // Create record in database with 24h expiration
+            // Persist credits_charged so refunds ALWAYS use the original charged amount,
+            // regardless of any future pricing changes made by admin.
             $videoGeneration = VideoGeneration::create([
                 'user_id' => $userId,
                 'generation_type' => 'text-to-video',
@@ -88,22 +101,23 @@ class VideoGeneratorController extends Controller
                 'aspect_ratio' => $ratio,
                 'resolution' => $resolution,
                 'duration' => $duration,
-                'generate_audio' => (bool) ($validated['generate_audio'] ?? false),
+                'generate_audio' => $generateAudio,
                 'seed' => isset($validated['seed']) && is_numeric($validated['seed']) ? (int) $validated['seed'] : null,
                 'camerafixed' => (bool) ($validated['camerafixed'] ?? false),
                 'watermark' => (bool) ($validated['watermark'] ?? false),
                 'model_version' => $prediction['version'] ?? 'seedance-1.5-pro',
                 'status' => strtolower($prediction['status'] ?? 'submitted'),
+                'credits_charged' => $creditCost,
                 'expires_at' => now()->addHours(24),
             ]);
 
             // Link credit transaction reference to local video generation ID
             $creditTxn->update(['reference_id' => $videoGeneration->id]);
 
-            Log::info("[VIDEO CREATE]\n" .
-                "- Local Generation ID: {$videoGeneration->id}\n" .
-                "- API Prediction ID: {$videoGeneration->prediction_id}\n" .
-                "- Complete API Response: " . json_encode($prediction['raw'] ?? $prediction));
+            Log::info("[VIDEO CREATE]\n".
+                "- Local Generation ID: {$videoGeneration->id}\n".
+                "- API Prediction ID: {$videoGeneration->prediction_id}\n".
+                '- Complete API Response: '.json_encode($prediction['raw'] ?? $prediction));
 
             return response()->json([
                 'success' => true,
@@ -112,7 +126,7 @@ class VideoGeneratorController extends Controller
                 'credit_balance' => $this->creditService->getBalance($user),
             ], 201);
         } catch (Exception $e) {
-            Log::error('[VIDEO CREATE FAILED] ' . $e->getMessage());
+            Log::error('[VIDEO CREATE FAILED] '.$e->getMessage());
 
             // Safely refund deducted credits on AI invocation failure
             try {
@@ -121,10 +135,10 @@ class VideoGeneratorController extends Controller
                     amount: $creditCost,
                     source: 'video_generation',
                     referenceId: (string) $creditTxn->id,
-                    description: "Refunded {$creditCost} credits due to AI video service creation failure: " . $e->getMessage()
+                    description: "Refunded {$creditCost} credits due to AI video service creation failure: ".$e->getMessage()
                 );
             } catch (Exception $refundEx) {
-                Log::error('[REFUND FAILED] ' . $refundEx->getMessage());
+                Log::error('[REFUND FAILED] '.$refundEx->getMessage());
             }
 
             return response()->json([
@@ -136,13 +150,12 @@ class VideoGeneratorController extends Controller
 
     /**
      * Poll status of an ongoing video generation.
-
      */
     public function status(string $id): JsonResponse
     {
         $videoGeneration = VideoGeneration::find($id);
 
-        if (!$videoGeneration) {
+        if (! $videoGeneration) {
             return response()->json([
                 'success' => false,
                 'message' => 'Video generation task not found.',
@@ -164,38 +177,40 @@ class VideoGeneratorController extends Controller
             $rawBody = $predictionStatus['raw_body'] ?? json_encode($predictionStatus['raw'] ?? []);
             $outputUrl = $predictionStatus['output'] ?? null;
 
-            Log::info("[VIDEO POLL]\n" .
-                "- Local Generation ID: {$videoGeneration->id}\n" .
-                "- Prediction ID: {$videoGeneration->prediction_id}\n" .
-                "- HTTP Status: {$httpStatus}\n" .
-                "- Raw Response Body: {$rawBody}\n" .
-                "- Parsed API Status: {$status}\n" .
-                "- Parsed Output URL: " . ($outputUrl ?: 'null'));
+            Log::info("[VIDEO POLL]\n".
+                "- Local Generation ID: {$videoGeneration->id}\n".
+                "- Prediction ID: {$videoGeneration->prediction_id}\n".
+                "- HTTP Status: {$httpStatus}\n".
+                "- Raw Response Body: {$rawBody}\n".
+                "- Parsed API Status: {$status}\n".
+                '- Parsed Output URL: '.($outputUrl ?: 'null'));
 
             // RACE-CONDITION PROTECTION: Check if generation was cancelled during poll
             $fresh = VideoGeneration::find($id);
-            if (!$fresh || $fresh->status === 'cancelled') {
+            if (! $fresh || $fresh->status === 'cancelled') {
                 Log::info("[VIDEO POLL IGNORED] Video {$id} is cancelled.");
+
                 return response()->json([
                     'success' => true,
                     'generation' => $fresh ?: $videoGeneration,
                 ]);
             }
 
-            if ($status === 'succeeded' && !empty($outputUrl)) {
+            if ($status === 'succeeded' && ! empty($outputUrl)) {
                 $localPath = null;
 
                 try {
                     // Download and cache video locally
                     $localPath = $this->videoService->downloadAndStoreVideo($outputUrl);
                 } catch (Exception $dlEx) {
-                    Log::warning("Could not cache video locally, fallback to remote URL: " . $dlEx->getMessage());
+                    Log::warning('Could not cache video locally, fallback to remote URL: '.$dlEx->getMessage());
                 }
 
                 // Final check before saving
                 $fresh = VideoGeneration::find($id);
                 if ($fresh && $fresh->status === 'cancelled') {
                     Log::info("[VIDEO SAVE IGNORED] Video {$id} was cancelled during download.");
+
                     return response()->json([
                         'success' => true,
                         'generation' => $fresh,
@@ -209,12 +224,12 @@ class VideoGeneratorController extends Controller
                     'error_message' => null,
                 ]);
 
-                Log::info("[VIDEO FINAL]\n" .
-                    "- Local Generation ID: {$videoGeneration->id}\n" .
-                    "- Status: succeeded\n" .
-                    "- Output URL: {$outputUrl}\n" .
-                    "- Downloaded Local File Path: " . ($localPath ?: 'none') . "\n" .
-                    "- Database Status: " . $videoGeneration->fresh()->status);
+                Log::info("[VIDEO FINAL]\n".
+                    "- Local Generation ID: {$videoGeneration->id}\n".
+                    "- Status: succeeded\n".
+                    "- Output URL: {$outputUrl}\n".
+                    '- Downloaded Local File Path: '.($localPath ?: 'none')."\n".
+                    '- Database Status: '.$videoGeneration->fresh()->status);
 
             } elseif ($status === 'failed') {
                 $errorMessage = $predictionStatus['error'] ?? 'Video generation failed on provider.';
@@ -229,7 +244,7 @@ class VideoGeneratorController extends Controller
                         ->where('type', 'generation_refund')
                         ->exists();
 
-                    if (!$alreadyRefunded) {
+                    if (! $alreadyRefunded) {
                         $cost = $this->getDeductedCreditsForGeneration($videoGeneration);
                         try {
                             $this->creditService->refundCredits(
@@ -241,16 +256,16 @@ class VideoGeneratorController extends Controller
                             );
                             Log::info("[VIDEO REFUND SUCCESS] Refunded {$cost} credits for failed generation {$videoGeneration->id}");
                         } catch (Exception $refEx) {
-                            Log::error('[VIDEO FAILED REFUND ERROR] ' . $refEx->getMessage());
+                            Log::error('[VIDEO FAILED REFUND ERROR] '.$refEx->getMessage());
                         }
                     }
                 }
 
-                Log::warning("[VIDEO FINAL]\n" .
-                    "- Local Generation ID: {$videoGeneration->id}\n" .
-                    "- Status: failed\n" .
-                    "- Error: {$errorMessage}\n" .
-                    "- Database Status: " . $videoGeneration->fresh()->status);
+                Log::warning("[VIDEO FINAL]\n".
+                    "- Local Generation ID: {$videoGeneration->id}\n".
+                    "- Status: failed\n".
+                    "- Error: {$errorMessage}\n".
+                    '- Database Status: '.$videoGeneration->fresh()->status);
             } else {
                 $fresh = VideoGeneration::find($id);
                 if ($fresh && $fresh->status !== 'cancelled') {
@@ -265,7 +280,7 @@ class VideoGeneratorController extends Controller
                 'generation' => $videoGeneration->fresh(),
             ]);
         } catch (Exception $e) {
-            Log::warning("[VIDEO POLL WARNING] for {$id}: " . $e->getMessage());
+            Log::warning("[VIDEO POLL WARNING] for {$id}: ".$e->getMessage());
 
             return response()->json([
                 'success' => true,
@@ -283,7 +298,7 @@ class VideoGeneratorController extends Controller
     {
         $videoGeneration = VideoGeneration::find($id);
 
-        if (!$videoGeneration) {
+        if (! $videoGeneration) {
             return response()->json([
                 'success' => false,
                 'message' => 'Video generation not found.',
@@ -307,11 +322,11 @@ class VideoGeneratorController extends Controller
             ]);
         }
 
-        if (!empty($videoGeneration->prediction_id)) {
+        if (! empty($videoGeneration->prediction_id)) {
             try {
                 $this->videoService->cancelPrediction($videoGeneration->prediction_id);
             } catch (Exception $e) {
-                Log::info("Provider video cancellation notice: " . $e->getMessage());
+                Log::info('Provider video cancellation notice: '.$e->getMessage());
             }
         }
 
@@ -325,7 +340,7 @@ class VideoGeneratorController extends Controller
             $alreadyRefunded = CreditTransaction::where('reference_id', $videoGeneration->id)
                 ->where('type', 'generation_refund')
                 ->exists();
-            if (!$alreadyRefunded) {
+            if (! $alreadyRefunded) {
                 $cost = $this->getDeductedCreditsForGeneration($videoGeneration);
                 try {
                     $this->creditService->refundCredits(
@@ -336,15 +351,15 @@ class VideoGeneratorController extends Controller
                         description: "Refunded {$cost} credits for cancelled video generation {$videoGeneration->id}"
                     );
                 } catch (Exception $refEx) {
-                    Log::error('[VIDEO CANCEL REFUND FAILED] ' . $refEx->getMessage());
+                    Log::error('[VIDEO CANCEL REFUND FAILED] '.$refEx->getMessage());
                 }
             }
         }
 
-        Log::info("[VIDEO CANCELLED]\n" .
-            "- Local Generation ID: {$videoGeneration->id}\n" .
-            "- Prediction ID: {$videoGeneration->prediction_id}\n" .
-            "- Status: cancelled");
+        Log::info("[VIDEO CANCELLED]\n".
+            "- Local Generation ID: {$videoGeneration->id}\n".
+            "- Prediction ID: {$videoGeneration->prediction_id}\n".
+            '- Status: cancelled');
 
         return response()->json([
             'success' => true,
@@ -361,7 +376,7 @@ class VideoGeneratorController extends Controller
     {
         $userId = session('supabase_user_id') ?? ($request->user() ? (string) $request->user()->id : null);
 
-        if (!$userId) {
+        if (! $userId) {
             return response()->json([
                 'success' => true,
                 'generations' => [],
@@ -391,7 +406,8 @@ class VideoGeneratorController extends Controller
 
         if ($videoGen->video_path && Storage::disk('public')->exists($videoGen->video_path)) {
             $path = Storage::disk('public')->path($videoGen->video_path);
-            $filename = 'ai-video-' . substr($videoGen->id, 0, 8) . '.mp4';
+            $filename = 'ai-video-'.substr($videoGen->id, 0, 8).'.mp4';
+
             return response()->download($path, $filename, [
                 'Content-Type' => 'video/mp4',
             ]);
@@ -412,7 +428,7 @@ class VideoGeneratorController extends Controller
         $userId = session('supabase_user_id') ?? ($request->user() ? (string) $request->user()->id : null);
         $videoGen = VideoGeneration::find($id);
 
-        if (!$videoGen) {
+        if (! $videoGen) {
             return response()->json(['success' => false, 'message' => 'Not found'], 404);
         }
 
@@ -429,34 +445,32 @@ class VideoGeneratorController extends Controller
     }
 
     /**
-     * Calculate required credit cost based on application-level pricing policy.
-     * Formula: base * resolution_multiplier * duration_multiplier
+     * Calculate required credit cost using the DB-backed AiCreditPricingService.
+     * Delegates to the central pricing service; config/credits.php is only a fallback.
      */
-    public function calculateCreditCost(string $resolution = '720p', int $duration = 5): int
+    public function calculateCreditCost(string $resolution = '720p', int $duration = 5, bool $generateAudio = false): int
     {
-        $base = (int) config('credits.text_to_video_audio.base', config('credits.costs.video_generation', 5));
-        $resMultipliers = config('credits.text_to_video_audio.resolution_multiplier', [
-            '480p'  => 1,
-            '720p'  => 2,
-            '1080p' => 3,
-        ]);
-        $durMultipliers = config('credits.text_to_video_audio.duration_multiplier', [
-            5  => 1,
-            8  => 2,
-            12 => 3,
-        ]);
-
-        $resMult = (int) ($resMultipliers[$resolution] ?? 1);
-        $durMult = (int) ($durMultipliers[$duration] ?? 1);
-
-        return max(1, $base * $resMult * $durMult);
+        return $this->pricingService->calculateTextToVideoCost($resolution, $duration, $generateAudio);
     }
 
     /**
      * Find how many credits were originally deducted for a generation.
+     *
+     * Priority:
+     *  1. credits_charged column on the VideoGeneration model (persisted at creation time)
+     *  2. Matching CreditTransaction deduction record
+     *
+     * NEVER recalculate with current pricing — the admin may have changed settings
+     * after the generation was created, which would produce an incorrect refund amount.
      */
     protected function getDeductedCreditsForGeneration(VideoGeneration $videoGeneration): int
     {
+        // 1. Use the persisted charged amount if available (preferred)
+        if (! empty($videoGeneration->credits_charged) && $videoGeneration->credits_charged > 0) {
+            return (int) $videoGeneration->credits_charged;
+        }
+
+        // 2. Fall back to the credit transaction ledger record
         $creditTxn = CreditTransaction::where('reference_id', $videoGeneration->id)
             ->where('type', 'generation_deduction')
             ->first();
@@ -465,9 +479,11 @@ class VideoGeneratorController extends Controller
             return abs($creditTxn->amount);
         }
 
-        return $this->calculateCreditCost(
+        // 3. Last resort: recalculate (only happens for very old records without credits_charged)
+        return $this->pricingService->calculateTextToVideoCost(
             $videoGeneration->resolution ?? '720p',
-            (int) ($videoGeneration->duration ?? 5)
+            (int) ($videoGeneration->duration ?? 5),
+            (bool) ($videoGeneration->generate_audio ?? false)
         );
     }
 }

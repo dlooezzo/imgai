@@ -26,6 +26,7 @@ class VideoGeneration extends Model
         'seed',
         'camerafixed',
         'watermark',
+        'credits_charged',
         'width',
         'height',
         'steps',
@@ -46,29 +47,39 @@ class VideoGeneration extends Model
     ];
 
     protected $casts = [
-        'duration'          => 'integer',
-        'generate_audio'    => 'boolean',
-        'seed'              => 'integer',
-        'camerafixed'       => 'boolean',
-        'watermark'         => 'boolean',
-        'width'             => 'integer',
-        'height'            => 'integer',
-        'steps'             => 'integer',
-        'crf'               => 'integer',
-        'flow_shift'        => 'integer',
-        'frame_rate'        => 'integer',
-        'num_frames'        => 'integer',
-        'guidance_scale'    => 'float',
-        'denoise_strength'  => 'float',
-        'job_dispatched'    => 'boolean',
-        'poll_attempts'     => 'integer',
-        'expires_at'        => 'datetime',
+        'duration' => 'integer',
+        'generate_audio' => 'boolean',
+        'seed' => 'integer',
+        'camerafixed' => 'boolean',
+        'watermark' => 'boolean',
+        'credits_charged' => 'integer',
+        'width' => 'integer',
+        'height' => 'integer',
+        'steps' => 'integer',
+        'crf' => 'integer',
+        'flow_shift' => 'integer',
+        'frame_rate' => 'integer',
+        'num_frames' => 'integer',
+        'guidance_scale' => 'float',
+        'denoise_strength' => 'float',
+        'job_dispatched' => 'boolean',
+        'poll_attempts' => 'integer',
+        'expires_at' => 'datetime',
     ];
 
     protected $appends = [
         'video_url',
         'is_expired',
+        'ratio',
     ];
+
+    /**
+     * Get ratio alias for aspect_ratio.
+     */
+    public function getRatioAttribute(): ?string
+    {
+        return $this->aspect_ratio;
+    }
 
     /**
      * Get the publicly accessible URL for the generated video.
@@ -84,17 +95,18 @@ class VideoGeneration extends Model
         if ($this->video_path && (str_starts_with($this->video_path, 'users/') || str_contains($this->video_path, 'image-to-video/'))) {
             $r2PublicUrl = rtrim(config('filesystems.disks.r2.url', env('R2_PUBLIC_URL', '')), '/');
             if ($r2PublicUrl) {
-                return $r2PublicUrl . '/' . ltrim($this->video_path, '/');
+                return $r2PublicUrl.'/'.ltrim($this->video_path, '/');
             }
         }
 
         // 3. If stored in local public storage — use request-aware URL so port is correct
         if ($this->video_path) {
-            if (app()->runningInConsole() || !request()) {
-                return url('storage/' . $this->video_path);
+            if (app()->runningInConsole() || ! request()) {
+                return url('storage/'.$this->video_path);
             }
             $baseUrl = rtrim(request()->getSchemeAndHttpHost(), '/');
-            return $baseUrl . '/storage/' . $this->video_path;
+
+            return $baseUrl.'/storage/'.$this->video_path;
         }
 
         return $this->remote_url;

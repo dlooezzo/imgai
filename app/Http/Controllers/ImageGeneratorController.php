@@ -7,6 +7,7 @@ use App\Models\CreditTransaction;
 use App\Models\Generation;
 use App\Models\User;
 use App\Services\AI\Contracts\ImageGenerationInterface;
+use App\Services\Credits\AiCreditPricingService;
 use App\Services\Credits\CreditService;
 use Exception;
 use Illuminate\Http\JsonResponse;
@@ -18,12 +19,16 @@ use Illuminate\Support\Str;
 class ImageGeneratorController extends Controller
 {
     protected ImageGenerationInterface $aiService;
+
     protected CreditService $creditService;
 
-    public function __construct(ImageGenerationInterface $aiService, CreditService $creditService)
+    protected AiCreditPricingService $pricingService;
+
+    public function __construct(ImageGenerationInterface $aiService, CreditService $creditService, AiCreditPricingService $pricingService)
     {
         $this->aiService = $aiService;
         $this->creditService = $creditService;
+        $this->pricingService = $pricingService;
     }
 
     /**
@@ -34,7 +39,7 @@ class ImageGeneratorController extends Controller
         $validated = $request->validated();
         $userId = session('supabase_user_id') ?? ($request->user() ? (string) $request->user()->id : null);
 
-        if (!$userId) {
+        if (! $userId) {
             return response()->json([
                 'success' => false,
                 'error' => 'Authentication required. Please sign in or register to generate images.',
@@ -45,10 +50,11 @@ class ImageGeneratorController extends Controller
 
         // 1. Resolve User and check credit balance
         $user = $request->user() ?: User::where('id', $userId)->orWhere('email', session('supabase_user.email'))->first();
-        $creditCost = (int) config('credits.costs.image_generation', 1);
+        $creditCost = $this->pricingService->getImageGenerationCost();
 
-        if (!$user || !$this->creditService->hasEnoughCredits($user, $creditCost)) {
+        if (! $user || ! $this->creditService->hasEnoughCredits($user, $creditCost)) {
             $currentBalance = $user ? $this->creditService->getBalance($user) : 0;
+
             return response()->json([
                 'success' => false,
                 'error' => 'insufficient_credits',
@@ -92,10 +98,10 @@ class ImageGeneratorController extends Controller
             $creditTxn->update(['reference_id' => $generation->id]);
 
             // Structured logging as requested
-            Log::info("[CREATE]\n" .
-                "- Local Generation ID: {$generation->id}\n" .
-                "- API Prediction ID: {$generation->prediction_id}\n" .
-                "- Complete API Response: " . json_encode($prediction['raw'] ?? $prediction));
+            Log::info("[CREATE]\n".
+                "- Local Generation ID: {$generation->id}\n".
+                "- API Prediction ID: {$generation->prediction_id}\n".
+                '- Complete API Response: '.json_encode($prediction['raw'] ?? $prediction));
 
             return response()->json([
                 'success' => true,
@@ -104,7 +110,7 @@ class ImageGeneratorController extends Controller
                 'credit_balance' => $this->creditService->getBalance($user),
             ], 201);
         } catch (Exception $e) {
-            Log::error('[CREATE FAILED] ' . $e->getMessage());
+            Log::error('[CREATE FAILED] '.$e->getMessage());
 
             // Safely refund deducted credits on AI invocation failure
             try {
@@ -113,10 +119,10 @@ class ImageGeneratorController extends Controller
                     amount: $creditCost,
                     source: 'image_generation',
                     referenceId: (string) $creditTxn->id,
-                    description: "Refunded {$creditCost} credits due to AI service creation failure: " . $e->getMessage()
+                    description: "Refunded {$creditCost} credits due to AI service creation failure: ".$e->getMessage()
                 );
             } catch (Exception $refundEx) {
-                Log::error('[REFUND FAILED] ' . $refundEx->getMessage());
+                Log::error('[REFUND FAILED] '.$refundEx->getMessage());
             }
 
             return response()->json([
@@ -126,7 +132,6 @@ class ImageGeneratorController extends Controller
         }
     }
 
-
     /**
      * Poll status of an ongoing generation.
      */
@@ -134,7 +139,7 @@ class ImageGeneratorController extends Controller
     {
         $generation = Generation::find($id);
 
-        if (!$generation) {
+        if (! $generation) {
             return response()->json([
                 'success' => false,
                 'message' => 'Generation task not found.',
@@ -157,38 +162,40 @@ class ImageGeneratorController extends Controller
             $outputUrl = $predictionStatus['output'] ?? null;
 
             // Structured polling log
-            Log::info("[POLL]\n" .
-                "- Local Generation ID: {$generation->id}\n" .
-                "- Prediction ID: {$generation->prediction_id}\n" .
-                "- HTTP Status: {$httpStatus}\n" .
-                "- Raw Response Body: {$rawBody}\n" .
-                "- Parsed API Status: {$status}\n" .
-                "- Parsed Output URL: " . ($outputUrl ?: 'null'));
+            Log::info("[POLL]\n".
+                "- Local Generation ID: {$generation->id}\n".
+                "- Prediction ID: {$generation->prediction_id}\n".
+                "- HTTP Status: {$httpStatus}\n".
+                "- Raw Response Body: {$rawBody}\n".
+                "- Parsed API Status: {$status}\n".
+                '- Parsed Output URL: '.($outputUrl ?: 'null'));
 
             // RACE-CONDITION PROTECTION: Check if generation was cancelled while polling was in flight
             $freshGeneration = Generation::find($id);
-            if (!$freshGeneration || $freshGeneration->status === 'cancelled') {
+            if (! $freshGeneration || $freshGeneration->status === 'cancelled') {
                 Log::info("[POLL IGNORED] Generation {$id} is cancelled. Discarding API poll update.");
+
                 return response()->json([
                     'success' => true,
                     'generation' => $freshGeneration ?: $generation,
                 ]);
             }
 
-            if ($status === 'succeeded' && !empty($outputUrl)) {
+            if ($status === 'succeeded' && ! empty($outputUrl)) {
                 $localPath = null;
 
                 try {
                     // Download and store locally
                     $localPath = $this->aiService->downloadAndStoreImage($outputUrl, $generation->output_format);
                 } catch (Exception $dlEx) {
-                    Log::warning("Could not cache image locally, using remote URL: " . $dlEx->getMessage());
+                    Log::warning('Could not cache image locally, using remote URL: '.$dlEx->getMessage());
                 }
 
                 // RACE-CONDITION CHECK: Check again after image download
                 $freshGeneration = Generation::find($id);
                 if ($freshGeneration && $freshGeneration->status === 'cancelled') {
                     Log::info("[SAVE IGNORED] Generation {$id} was cancelled during image download.");
+
                     return response()->json([
                         'success' => true,
                         'generation' => $freshGeneration,
@@ -203,12 +210,12 @@ class ImageGeneratorController extends Controller
                 ]);
 
                 // Structured final log
-                Log::info("[FINAL]\n" .
-                    "- Local Generation ID: {$generation->id}\n" .
-                    "- Status: succeeded\n" .
-                    "- Output URL: {$outputUrl}\n" .
-                    "- Downloaded Local File Path: " . ($localPath ?: 'none') . "\n" .
-                    "- Database Status: " . $generation->fresh()->status);
+                Log::info("[FINAL]\n".
+                    "- Local Generation ID: {$generation->id}\n".
+                    "- Status: succeeded\n".
+                    "- Output URL: {$outputUrl}\n".
+                    '- Downloaded Local File Path: '.($localPath ?: 'none')."\n".
+                    '- Database Status: '.$generation->fresh()->status);
 
             } elseif ($status === 'failed') {
                 $errorMessage = $predictionStatus['error'] ?? 'Prediction failed on AI provider.';
@@ -223,8 +230,8 @@ class ImageGeneratorController extends Controller
                         ->where('type', 'generation_refund')
                         ->exists();
 
-                    if (!$alreadyRefunded) {
-                        $cost = (int) config('credits.costs.image_generation', 1);
+                    if (! $alreadyRefunded) {
+                        $cost = $this->pricingService->getImageGenerationCost();
                         try {
                             $this->creditService->refundCredits(
                                 user: $generation->user_id,
@@ -235,17 +242,17 @@ class ImageGeneratorController extends Controller
                             );
                             Log::info("[IMAGE REFUND SUCCESS] Refunded {$cost} credits for failed generation {$generation->id}");
                         } catch (Exception $refEx) {
-                            Log::error('[IMAGE FAILED REFUND ERROR] ' . $refEx->getMessage());
+                            Log::error('[IMAGE FAILED REFUND ERROR] '.$refEx->getMessage());
                         }
                     }
                 }
 
                 // Structured final failed log
-                Log::warning("[FINAL]\n" .
-                    "- Local Generation ID: {$generation->id}\n" .
-                    "- Status: failed\n" .
-                    "- Error: {$errorMessage}\n" .
-                    "- Database Status: " . $generation->fresh()->status);
+                Log::warning("[FINAL]\n".
+                    "- Local Generation ID: {$generation->id}\n".
+                    "- Status: failed\n".
+                    "- Error: {$errorMessage}\n".
+                    '- Database Status: '.$generation->fresh()->status);
             } else {
                 // Keep updating intermediate status if still active and not cancelled
                 $freshGeneration = Generation::find($id);
@@ -261,7 +268,7 @@ class ImageGeneratorController extends Controller
                 'generation' => $generation->fresh(),
             ]);
         } catch (Exception $e) {
-            Log::warning("[POLL WARNING] for {$id}: " . $e->getMessage());
+            Log::warning("[POLL WARNING] for {$id}: ".$e->getMessage());
 
             return response()->json([
                 'success' => true,
@@ -279,7 +286,7 @@ class ImageGeneratorController extends Controller
     {
         $generation = Generation::find($id);
 
-        if (!$generation) {
+        if (! $generation) {
             return response()->json([
                 'success' => false,
                 'message' => 'Generation not found.',
@@ -306,11 +313,11 @@ class ImageGeneratorController extends Controller
         }
 
         // Attempt provider cancellation safely
-        if (!empty($generation->prediction_id)) {
+        if (! empty($generation->prediction_id)) {
             try {
                 $this->aiService->cancelPrediction($generation->prediction_id);
             } catch (Exception $e) {
-                Log::info("Provider cancellation notice: " . $e->getMessage());
+                Log::info('Provider cancellation notice: '.$e->getMessage());
             }
         }
 
@@ -325,8 +332,8 @@ class ImageGeneratorController extends Controller
             $alreadyRefunded = CreditTransaction::where('reference_id', $generation->id)
                 ->where('type', 'generation_refund')
                 ->exists();
-            if (!$alreadyRefunded) {
-                $cost = (int) config('credits.costs.image_generation', 1);
+            if (! $alreadyRefunded) {
+                $cost = $this->pricingService->getImageGenerationCost();
                 try {
                     $this->creditService->refundCredits(
                         user: $generation->user_id,
@@ -336,15 +343,15 @@ class ImageGeneratorController extends Controller
                         description: "Refunded {$cost} credits for cancelled generation {$generation->id}"
                     );
                 } catch (Exception $refEx) {
-                    Log::error('[CANCEL REFUND FAILED] ' . $refEx->getMessage());
+                    Log::error('[CANCEL REFUND FAILED] '.$refEx->getMessage());
                 }
             }
         }
 
-        Log::info("[CANCELLED]\n" .
-            "- Local Generation ID: {$generation->id}\n" .
-            "- Prediction ID: {$generation->prediction_id}\n" .
-            "- Status: cancelled");
+        Log::info("[CANCELLED]\n".
+            "- Local Generation ID: {$generation->id}\n".
+            "- Prediction ID: {$generation->prediction_id}\n".
+            '- Status: cancelled');
 
         return response()->json([
             'success' => true,
@@ -361,7 +368,7 @@ class ImageGeneratorController extends Controller
     {
         $userId = session('supabase_user_id') ?? ($request->user() ? (string) $request->user()->id : null);
 
-        if (!$userId) {
+        if (! $userId) {
             return response()->json([
                 'success' => true,
                 'generations' => [],
@@ -391,7 +398,8 @@ class ImageGeneratorController extends Controller
 
         if ($generation->image_path && Storage::disk('public')->exists($generation->image_path)) {
             $path = Storage::disk('public')->path($generation->image_path);
-            $filename = 'ai-generation-' . substr($generation->id, 0, 8) . '.' . $generation->output_format;
+            $filename = 'ai-generation-'.substr($generation->id, 0, 8).'.'.$generation->output_format;
+
             return response()->download($path, $filename);
         }
 
@@ -410,7 +418,7 @@ class ImageGeneratorController extends Controller
         $userId = session('supabase_user_id') ?? ($request->user() ? (string) $request->user()->id : null);
         $generation = Generation::find($id);
 
-        if (!$generation) {
+        if (! $generation) {
             return response()->json(['success' => false, 'message' => 'Not found'], 404);
         }
 

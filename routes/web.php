@@ -1,9 +1,35 @@
 <?php
 
+use App\Http\Controllers\Admin\AdminManagementController;
+use App\Http\Controllers\Admin\AiCreditPricingController;
+use App\Http\Controllers\Admin\ApiMarketController;
+use App\Http\Controllers\Admin\BrandingSeoController;
+use App\Http\Controllers\Admin\CreditTransactionController;
+use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\GenerationController;
+use App\Http\Controllers\Admin\HeroShowcaseController;
+use App\Http\Controllers\Admin\ImageController;
+use App\Http\Controllers\Admin\LogController;
+use App\Http\Controllers\Admin\ModelController;
+use App\Http\Controllers\Admin\PageController;
+use App\Http\Controllers\Admin\PricingPlanController;
+use App\Http\Controllers\Admin\SettingsController;
+use App\Http\Controllers\Admin\StorageController;
+use App\Http\Controllers\Admin\SubscriptionController;
+use App\Http\Controllers\Admin\SupabaseController;
+use App\Http\Controllers\Admin\SystemStatusController;
+use App\Http\Controllers\Admin\ToolArticleController;
+use App\Http\Controllers\Admin\TransactionController;
+use App\Http\Controllers\Admin\UserController;
+use App\Http\Controllers\Admin\VideoController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ImageGeneratorController;
 use App\Http\Controllers\ImageToVideoController;
+use App\Http\Controllers\PaddleWebhookController;
+use App\Http\Controllers\PricingController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\PublicPageController;
+use App\Http\Controllers\PublicSeoController;
 use App\Http\Controllers\ToolController;
 use App\Http\Controllers\VideoGeneratorController;
 use Illuminate\Support\Facades\Route;
@@ -58,12 +84,11 @@ Route::prefix('tools')->name('tools.')->group(function () {
 });
 
 // Public Pricing & Subscription
-Route::get('/pricing', [\App\Http\Controllers\PricingController::class, 'index'])->name('pricing');
-Route::get('/welcome', [\App\Http\Controllers\PricingController::class, 'welcome'])->name('welcome');
+Route::get('/pricing', [PricingController::class, 'index'])->name('pricing');
+Route::get('/welcome', [PricingController::class, 'welcome'])->name('welcome');
 
 // Paddle Billing Webhooks
-Route::post('/webhooks/paddle', [\App\Http\Controllers\PaddleWebhookController::class, 'handle'])->name('webhooks.paddle');
-
+Route::post('/webhooks/paddle', [PaddleWebhookController::class, 'handle'])->name('webhooks.paddle');
 
 // Dedicated Media Library (Requires Authentication)
 Route::get('/library', [ProfileController::class, 'library'])->middleware('tool.auth')->name('library.index');
@@ -86,53 +111,53 @@ Route::prefix('auth')->name('auth.')->group(function () {
 // Admin Control Center Routes (Protected by admin.auth)
 Route::prefix('admin')->name('admin.')->middleware(['admin.auth'])->group(function () {
     // Overview Dashboard
-    Route::get('/', [\App\Http\Controllers\Admin\DashboardController::class, 'index'])->name('dashboard');
+    Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
 
     // Hero Showcase Management
     Route::prefix('hero-showcase')->name('hero-showcase.')->group(function () {
-        Route::get('/', [\App\Http\Controllers\Admin\HeroShowcaseController::class, 'index'])->name('index');
-        Route::post('/update', [\App\Http\Controllers\Admin\HeroShowcaseController::class, 'update'])->name('update');
-        Route::post('/scale', [\App\Http\Controllers\Admin\HeroShowcaseController::class, 'updateScale'])->name('scale');
-        Route::post('/reset', [\App\Http\Controllers\Admin\HeroShowcaseController::class, 'reset'])->name('reset');
+        Route::get('/', [HeroShowcaseController::class, 'index'])->name('index');
+        Route::post('/update', [HeroShowcaseController::class, 'update'])->name('update');
+        Route::post('/scale', [HeroShowcaseController::class, 'updateScale'])->name('scale');
+        Route::post('/reset', [HeroShowcaseController::class, 'reset'])->name('reset');
     });
 
     // Users Management
     Route::prefix('users')->name('users.')->group(function () {
-        Route::get('/', [\App\Http\Controllers\Admin\UserController::class, 'index'])->name('index');
-        Route::get('/{id}', [\App\Http\Controllers\Admin\UserController::class, 'show'])->name('show');
+        Route::get('/', [UserController::class, 'index'])->name('index');
+        Route::get('/{id}', [UserController::class, 'show'])->name('show');
     });
 
     // Admin Role Management
     Route::prefix('admins')->name('admins.')->group(function () {
-        Route::get('/', [\App\Http\Controllers\Admin\AdminManagementController::class, 'index'])->name('index');
-        Route::post('/promote', [\App\Http\Controllers\Admin\AdminManagementController::class, 'promote'])->name('promote');
-        Route::post('/demote', [\App\Http\Controllers\Admin\AdminManagementController::class, 'demote'])->name('demote');
+        Route::get('/', [AdminManagementController::class, 'index'])->name('index');
+        Route::post('/promote', [AdminManagementController::class, 'promote'])->name('promote');
+        Route::post('/demote', [AdminManagementController::class, 'demote'])->name('demote');
     });
 
     // Unified Generations
     Route::prefix('generations')->name('generations.')->group(function () {
-        Route::get('/', [\App\Http\Controllers\Admin\GenerationController::class, 'index'])->name('index');
-        Route::delete('/{id}', [\App\Http\Controllers\Admin\GenerationController::class, 'destroy'])->name('destroy');
+        Route::get('/', [GenerationController::class, 'index'])->name('index');
+        Route::delete('/{id}', [GenerationController::class, 'destroy'])->name('destroy');
     });
 
     // Images Gallery
     Route::prefix('images')->name('images.')->group(function () {
-        Route::get('/', [\App\Http\Controllers\Admin\ImageController::class, 'index'])->name('index');
-        Route::delete('/{id}', [\App\Http\Controllers\Admin\ImageController::class, 'destroy'])->name('destroy');
+        Route::get('/', [ImageController::class, 'index'])->name('index');
+        Route::delete('/{id}', [ImageController::class, 'destroy'])->name('destroy');
     });
 
     // Videos Gallery
     Route::prefix('videos')->name('videos.')->group(function () {
-        Route::get('/', [\App\Http\Controllers\Admin\VideoController::class, 'index'])->name('index');
-        Route::delete('/{id}', [\App\Http\Controllers\Admin\VideoController::class, 'destroy'])->name('destroy');
+        Route::get('/', [VideoController::class, 'index'])->name('index');
+        Route::delete('/{id}', [VideoController::class, 'destroy'])->name('destroy');
     });
 
     // Unified Site Branding & SEO Management
     Route::prefix('branding-seo')->name('branding-seo.')->group(function () {
-        Route::get('/', [\App\Http\Controllers\Admin\BrandingSeoController::class, 'index'])->name('index');
-        Route::post('/update', [\App\Http\Controllers\Admin\BrandingSeoController::class, 'update'])->name('update');
-        Route::post('/upload-image', [\App\Http\Controllers\Admin\BrandingSeoController::class, 'uploadImage'])->name('upload-image');
-        Route::post('/clear-cache', [\App\Http\Controllers\Admin\BrandingSeoController::class, 'clearCache'])->name('clear-cache');
+        Route::get('/', [BrandingSeoController::class, 'index'])->name('index');
+        Route::post('/update', [BrandingSeoController::class, 'update'])->name('update');
+        Route::post('/upload-image', [BrandingSeoController::class, 'uploadImage'])->name('upload-image');
+        Route::post('/clear-cache', [BrandingSeoController::class, 'clearCache'])->name('clear-cache');
     });
 
     // Backwards Compatibility & Smooth 301 Redirects for Legacy Branding & SEO Routes
@@ -140,58 +165,58 @@ Route::prefix('admin')->name('admin.')->middleware(['admin.auth'])->group(functi
         Route::get('/', function () {
             return redirect()->route('admin.branding-seo.index', [], 301);
         })->name('index');
-        Route::post('/update', [\App\Http\Controllers\Admin\BrandingSeoController::class, 'update'])->name('update');
-        Route::post('/upload-image', [\App\Http\Controllers\Admin\BrandingSeoController::class, 'uploadImage'])->name('upload-image');
+        Route::post('/update', [BrandingSeoController::class, 'update'])->name('update');
+        Route::post('/upload-image', [BrandingSeoController::class, 'uploadImage'])->name('upload-image');
     });
 
     // Cloudflare R2 Storage Settings
     Route::prefix('storage')->name('storage.')->group(function () {
-        Route::get('/', [\App\Http\Controllers\Admin\StorageController::class, 'index'])->name('index');
-        Route::post('/update', [\App\Http\Controllers\Admin\StorageController::class, 'update'])->name('update');
-        Route::post('/test', [\App\Http\Controllers\Admin\StorageController::class, 'testConnection'])->name('test');
+        Route::get('/', [StorageController::class, 'index'])->name('index');
+        Route::post('/update', [StorageController::class, 'update'])->name('update');
+        Route::post('/test', [StorageController::class, 'testConnection'])->name('test');
     });
 
     // AI Models Settings
     Route::prefix('models')->name('models.')->group(function () {
-        Route::get('/', [\App\Http\Controllers\Admin\ModelController::class, 'index'])->name('index');
-        Route::post('/update', [\App\Http\Controllers\Admin\ModelController::class, 'update'])->name('update');
-        Route::post('/test', [\App\Http\Controllers\Admin\ModelController::class, 'testConnection'])->name('test');
+        Route::get('/', [ModelController::class, 'index'])->name('index');
+        Route::post('/update', [ModelController::class, 'update'])->name('update');
+        Route::post('/test', [ModelController::class, 'testConnection'])->name('test');
     });
 
     // API Market Settings
     Route::prefix('api-market')->name('api-market.')->group(function () {
-        Route::get('/', [\App\Http\Controllers\Admin\ApiMarketController::class, 'index'])->name('index');
-        Route::post('/update', [\App\Http\Controllers\Admin\ApiMarketController::class, 'update'])->name('update');
-        Route::post('/test', [\App\Http\Controllers\Admin\ApiMarketController::class, 'testConnection'])->name('test');
+        Route::get('/', [ApiMarketController::class, 'index'])->name('index');
+        Route::post('/update', [ApiMarketController::class, 'update'])->name('update');
+        Route::post('/test', [ApiMarketController::class, 'testConnection'])->name('test');
     });
 
     // Supabase Auth Settings
     Route::prefix('supabase')->name('supabase.')->group(function () {
-        Route::get('/', [\App\Http\Controllers\Admin\SupabaseController::class, 'index'])->name('index');
-        Route::post('/update', [\App\Http\Controllers\Admin\SupabaseController::class, 'update'])->name('update');
-        Route::post('/test', [\App\Http\Controllers\Admin\SupabaseController::class, 'testConnection'])->name('test');
+        Route::get('/', [SupabaseController::class, 'index'])->name('index');
+        Route::post('/update', [SupabaseController::class, 'update'])->name('update');
+        Route::post('/test', [SupabaseController::class, 'testConnection'])->name('test');
     });
 
     // System Logs
-    Route::get('/logs', [\App\Http\Controllers\Admin\LogController::class, 'index'])->name('logs.index');
+    Route::get('/logs', [LogController::class, 'index'])->name('logs.index');
 
     // System Status Live Probes
     Route::prefix('system-status')->name('system-status.')->group(function () {
-        Route::get('/', [\App\Http\Controllers\Admin\SystemStatusController::class, 'index'])->name('index');
-        Route::get('/live', [\App\Http\Controllers\Admin\SystemStatusController::class, 'liveCheck'])->name('live');
+        Route::get('/', [SystemStatusController::class, 'index'])->name('index');
+        Route::get('/live', [SystemStatusController::class, 'liveCheck'])->name('live');
     });
 
     // CMS Pages Management
     Route::prefix('pages')->name('pages.')->group(function () {
-        Route::get('/', [\App\Http\Controllers\Admin\PageController::class, 'index'])->name('index');
-        Route::get('/create', [\App\Http\Controllers\Admin\PageController::class, 'create'])->name('create');
-        Route::post('/', [\App\Http\Controllers\Admin\PageController::class, 'store'])->name('store');
-        Route::get('/{id}/edit', [\App\Http\Controllers\Admin\PageController::class, 'edit'])->name('edit');
-        Route::put('/{id}', [\App\Http\Controllers\Admin\PageController::class, 'update'])->name('update');
-        Route::delete('/{id}', [\App\Http\Controllers\Admin\PageController::class, 'destroy'])->name('destroy');
-        Route::post('/{id}/toggle-status', [\App\Http\Controllers\Admin\PageController::class, 'toggleStatus'])->name('toggle-status');
-        Route::get('/{id}/preview', [\App\Http\Controllers\Admin\PageController::class, 'preview'])->name('preview');
-        Route::post('/upload-image', [\App\Http\Controllers\Admin\PageController::class, 'uploadImage'])->name('upload-image');
+        Route::get('/', [PageController::class, 'index'])->name('index');
+        Route::get('/create', [PageController::class, 'create'])->name('create');
+        Route::post('/', [PageController::class, 'store'])->name('store');
+        Route::get('/{id}/edit', [PageController::class, 'edit'])->name('edit');
+        Route::put('/{id}', [PageController::class, 'update'])->name('update');
+        Route::delete('/{id}', [PageController::class, 'destroy'])->name('destroy');
+        Route::post('/{id}/toggle-status', [PageController::class, 'toggleStatus'])->name('toggle-status');
+        Route::get('/{id}/preview', [PageController::class, 'preview'])->name('preview');
+        Route::post('/upload-image', [PageController::class, 'uploadImage'])->name('upload-image');
     });
 
     // SEO Management & Tool Articles
@@ -199,64 +224,69 @@ Route::prefix('admin')->name('admin.')->middleware(['admin.auth'])->group(functi
         Route::get('/', function () {
             return redirect()->route('admin.branding-seo.index', [], 301);
         })->name('index');
-        Route::post('/global', [\App\Http\Controllers\Admin\BrandingSeoController::class, 'update'])->name('global');
-        Route::post('/homepage', [\App\Http\Controllers\Admin\BrandingSeoController::class, 'update'])->name('homepage');
-        Route::post('/tools', [\App\Http\Controllers\Admin\BrandingSeoController::class, 'update'])->name('tools');
-        Route::post('/verification', [\App\Http\Controllers\Admin\BrandingSeoController::class, 'update'])->name('verification');
-        Route::post('/robots', [\App\Http\Controllers\Admin\BrandingSeoController::class, 'update'])->name('robots');
-        Route::post('/clear-cache', [\App\Http\Controllers\Admin\BrandingSeoController::class, 'clearCache'])->name('clear-cache');
-        Route::post('/upload-image', [\App\Http\Controllers\Admin\BrandingSeoController::class, 'uploadImage'])->name('upload-image');
+        Route::post('/global', [BrandingSeoController::class, 'update'])->name('global');
+        Route::post('/homepage', [BrandingSeoController::class, 'update'])->name('homepage');
+        Route::post('/tools', [BrandingSeoController::class, 'update'])->name('tools');
+        Route::post('/verification', [BrandingSeoController::class, 'update'])->name('verification');
+        Route::post('/robots', [BrandingSeoController::class, 'update'])->name('robots');
+        Route::post('/clear-cache', [BrandingSeoController::class, 'clearCache'])->name('clear-cache');
+        Route::post('/upload-image', [BrandingSeoController::class, 'uploadImage'])->name('upload-image');
 
         // Tool Articles (SEO Content Editor for AI Tools)
         Route::prefix('articles')->name('articles.')->group(function () {
-            Route::get('/', [\App\Http\Controllers\Admin\ToolArticleController::class, 'index'])->name('index');
-            Route::get('/{tool_key}/edit', [\App\Http\Controllers\Admin\ToolArticleController::class, 'edit'])->name('edit');
-            Route::post('/{tool_key}/update', [\App\Http\Controllers\Admin\ToolArticleController::class, 'update'])->name('update');
-            Route::post('/{tool_key}/toggle-publish', [\App\Http\Controllers\Admin\ToolArticleController::class, 'togglePublish'])->name('toggle-publish');
-            Route::get('/{tool_key}/preview', [\App\Http\Controllers\Admin\ToolArticleController::class, 'preview'])->name('preview');
-            Route::post('/{tool_key}/duplicate', [\App\Http\Controllers\Admin\ToolArticleController::class, 'duplicate'])->name('duplicate');
-            Route::delete('/{tool_key}/destroy', [\App\Http\Controllers\Admin\ToolArticleController::class, 'destroy'])->name('destroy');
-            Route::post('/upload-image', [\App\Http\Controllers\Admin\ToolArticleController::class, 'uploadImage'])->name('upload-image');
+            Route::get('/', [ToolArticleController::class, 'index'])->name('index');
+            Route::get('/{tool_key}/edit', [ToolArticleController::class, 'edit'])->name('edit');
+            Route::post('/{tool_key}/update', [ToolArticleController::class, 'update'])->name('update');
+            Route::post('/{tool_key}/toggle-publish', [ToolArticleController::class, 'togglePublish'])->name('toggle-publish');
+            Route::get('/{tool_key}/preview', [ToolArticleController::class, 'preview'])->name('preview');
+            Route::post('/{tool_key}/duplicate', [ToolArticleController::class, 'duplicate'])->name('duplicate');
+            Route::delete('/{tool_key}/destroy', [ToolArticleController::class, 'destroy'])->name('destroy');
+            Route::post('/upload-image', [ToolArticleController::class, 'uploadImage'])->name('upload-image');
         });
     });
 
     // Billing & Pricing Plans Management
     Route::prefix('pricing')->name('pricing.')->group(function () {
-        Route::get('/', [\App\Http\Controllers\Admin\PricingPlanController::class, 'index'])->name('index');
-        Route::get('/create', [\App\Http\Controllers\Admin\PricingPlanController::class, 'create'])->name('create');
-        Route::post('/', [\App\Http\Controllers\Admin\PricingPlanController::class, 'store'])->name('store');
-        Route::get('/{plan}/edit', [\App\Http\Controllers\Admin\PricingPlanController::class, 'edit'])->name('edit');
-        Route::put('/{plan}', [\App\Http\Controllers\Admin\PricingPlanController::class, 'update'])->name('update');
-        Route::delete('/{plan}', [\App\Http\Controllers\Admin\PricingPlanController::class, 'destroy'])->name('destroy');
-        Route::patch('/{plan}/toggle', [\App\Http\Controllers\Admin\PricingPlanController::class, 'toggle'])->name('toggle');
+        Route::get('/', [PricingPlanController::class, 'index'])->name('index');
+        Route::get('/create', [PricingPlanController::class, 'create'])->name('create');
+        Route::post('/', [PricingPlanController::class, 'store'])->name('store');
+        Route::get('/{plan}/edit', [PricingPlanController::class, 'edit'])->name('edit');
+        Route::put('/{plan}', [PricingPlanController::class, 'update'])->name('update');
+        Route::delete('/{plan}', [PricingPlanController::class, 'destroy'])->name('destroy');
+        Route::patch('/{plan}/toggle', [PricingPlanController::class, 'toggle'])->name('toggle');
     });
 
     // Subscriptions Management
     Route::prefix('subscriptions')->name('subscriptions.')->group(function () {
-        Route::get('/', [\App\Http\Controllers\Admin\SubscriptionController::class, 'index'])->name('index');
+        Route::get('/', [SubscriptionController::class, 'index'])->name('index');
     });
 
     // Transactions History
     Route::prefix('transactions')->name('transactions.')->group(function () {
-        Route::get('/', [\App\Http\Controllers\Admin\TransactionController::class, 'index'])->name('index');
+        Route::get('/', [TransactionController::class, 'index'])->name('index');
     });
 
     // Credit Ledger
     Route::prefix('credits')->name('credits.')->group(function () {
-        Route::get('/', [\App\Http\Controllers\Admin\CreditTransactionController::class, 'index'])->name('index');
+        Route::get('/', [CreditTransactionController::class, 'index'])->name('index');
     });
 
+    // AI Credit Pricing (Centralized, DB-backed)
+    Route::prefix('credit-pricing')->name('credit-pricing.')->group(function () {
+        Route::get('/', [AiCreditPricingController::class, 'index'])->name('index');
+        Route::post('/update', [AiCreditPricingController::class, 'update'])->name('update');
+    });
 
     // System Settings
-    Route::get('/settings', [\App\Http\Controllers\Admin\SettingsController::class, 'index'])->name('settings.index');
-    Route::post('/settings/migrate', [\App\Http\Controllers\Admin\SettingsController::class, 'runMigrations'])->name('settings.migrate');
+    Route::get('/settings', [SettingsController::class, 'index'])->name('settings.index');
+    Route::post('/settings/migrate', [SettingsController::class, 'runMigrations'])->name('settings.migrate');
 });
 
 // Technical SEO Endpoints
-Route::get('/sitemap.xml', [\App\Http\Controllers\PublicSeoController::class, 'sitemap'])->name('sitemap');
-Route::get('/robots.txt', [\App\Http\Controllers\PublicSeoController::class, 'robots'])->name('robots');
+Route::get('/sitemap.xml', [PublicSeoController::class, 'sitemap'])->name('sitemap');
+Route::get('/robots.txt', [PublicSeoController::class, 'robots'])->name('robots');
 
 // Public Dynamic CMS Pages (Resolved when no static route matches)
-Route::get('/{slug}', [\App\Http\Controllers\PublicPageController::class, 'show'])
+Route::get('/{slug}', [PublicPageController::class, 'show'])
     ->name('pages.show')
     ->where('slug', '[a-zA-Z0-9_-]+');

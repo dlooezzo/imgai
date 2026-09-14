@@ -75,6 +75,12 @@
                         <span>Credit Ledger</span>
                     </a>
                 </li>
+                <li>
+                    <a href="{{ route('admin.credit-pricing.index') }}" class="admin-nav-link {{ request()->routeIs('admin.credit-pricing.*') ? 'active' : '' }}">
+                        <i data-lucide="sliders"></i>
+                        <span>AI Credit Pricing</span>
+                    </a>
+                </li>
             </ul>
         </div>
 

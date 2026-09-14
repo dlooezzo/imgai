@@ -56,13 +56,13 @@
                 <span class="badge-val" x-text="duration + 's'"></span>
             </div>
             <div class="segmented-group" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px;">
-                <button type="button" class="segmented-btn" :class="{ 'active': duration === 5 }" @click="!isGenerating && (duration = 5)" :disabled="isGenerating">
+                <button type="button" class="segmented-btn" :class="{ 'active': duration === 5 }" @click="setDuration(5)" :disabled="isGenerating">
                     <span>5 Seconds</span>
                 </button>
-                <button type="button" class="segmented-btn" :class="{ 'active': duration === 8 }" @click="!isGenerating && (duration = 8)" :disabled="isGenerating">
+                <button type="button" class="segmented-btn" :class="{ 'active': duration === 8 }" @click="setDuration(8)" :disabled="isGenerating">
                     <span>8 Seconds</span>
                 </button>
-                <button type="button" class="segmented-btn" :class="{ 'active': duration === 12 }" @click="!isGenerating && (duration = 12)" :disabled="isGenerating">
+                <button type="button" class="segmented-btn" :class="{ 'active': duration === 12 }" @click="setDuration(12)" :disabled="isGenerating">
                     <span>12 Seconds</span>
                 </button>
             </div>
@@ -75,13 +75,13 @@
                 <span class="badge-val" x-text="resolution"></span>
             </div>
             <div class="segmented-group" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px;">
-                <button type="button" class="segmented-btn" :class="{ 'active': resolution === '480p' }" @click="!isGenerating && (resolution = '480p')" :disabled="isGenerating">
+                <button type="button" class="segmented-btn" :class="{ 'active': resolution === '480p' }" @click="setResolution('480p')" :disabled="isGenerating">
                     <span>480p</span>
                 </button>
-                <button type="button" class="segmented-btn" :class="{ 'active': resolution === '720p' }" @click="!isGenerating && (resolution = '720p')" :disabled="isGenerating">
+                <button type="button" class="segmented-btn" :class="{ 'active': resolution === '720p' }" @click="setResolution('720p')" :disabled="isGenerating">
                     <span>720p (HD)</span>
                 </button>
-                <button type="button" class="segmented-btn" :class="{ 'active': resolution === '1080p' }" @click="!isGenerating && (resolution = '1080p')" :disabled="isGenerating">
+                <button type="button" class="segmented-btn" :class="{ 'active': resolution === '1080p' }" @click="setResolution('1080p')" :disabled="isGenerating">
                     <span>1080p (FHD)</span>
                 </button>
             </div>
@@ -96,56 +96,56 @@
 
             <div class="ratio-grid" style="grid-template-columns: repeat(4, 1fr); gap: 8px;">
                 <!-- 16:9 Cinema -->
-                <button type="button" class="ratio-btn" :class="{ 'active': aspectRatio === '16:9' }" @click="!isGenerating && (aspectRatio = '16:9')" :disabled="isGenerating">
+                <button type="button" class="ratio-btn" :class="{ 'active': aspectRatio === '16:9' }" @click="setAspectRatio('16:9')" :disabled="isGenerating">
                     <div class="ratio-visual-box" style="width: 26px; height: 15px;"></div>
                     <span class="ratio-label">16:9</span>
                     <span class="ratio-desc">Cinema</span>
                 </button>
 
                 <!-- 9:16 Shorts / Reels -->
-                <button type="button" class="ratio-btn" :class="{ 'active': aspectRatio === '9:16' }" @click="!isGenerating && (aspectRatio = '9:16')" :disabled="isGenerating">
+                <button type="button" class="ratio-btn" :class="{ 'active': aspectRatio === '9:16' }" @click="setAspectRatio('9:16')" :disabled="isGenerating">
                     <div class="ratio-visual-box" style="width: 15px; height: 26px;"></div>
                     <span class="ratio-label">9:16</span>
                     <span class="ratio-desc">Reels</span>
                 </button>
 
                 <!-- 1:1 Square -->
-                <button type="button" class="ratio-btn" :class="{ 'active': aspectRatio === '1:1' }" @click="!isGenerating && (aspectRatio = '1:1')" :disabled="isGenerating">
+                <button type="button" class="ratio-btn" :class="{ 'active': aspectRatio === '1:1' }" @click="setAspectRatio('1:1')" :disabled="isGenerating">
                     <div class="ratio-visual-box" style="width: 18px; height: 18px;"></div>
                     <span class="ratio-label">1:1</span>
                     <span class="ratio-desc">Square</span>
                 </button>
 
                 <!-- 4:3 Classic -->
-                <button type="button" class="ratio-btn" :class="{ 'active': aspectRatio === '4:3' }" @click="!isGenerating && (aspectRatio = '4:3')" :disabled="isGenerating">
+                <button type="button" class="ratio-btn" :class="{ 'active': aspectRatio === '4:3' }" @click="setAspectRatio('4:3')" :disabled="isGenerating">
                     <div class="ratio-visual-box" style="width: 22px; height: 16px;"></div>
                     <span class="ratio-label">4:3</span>
                     <span class="ratio-desc">Classic</span>
                 </button>
 
                 <!-- 3:4 Portrait -->
-                <button type="button" class="ratio-btn" :class="{ 'active': aspectRatio === '3:4' }" @click="!isGenerating && (aspectRatio = '3:4')" :disabled="isGenerating">
+                <button type="button" class="ratio-btn" :class="{ 'active': aspectRatio === '3:4' }" @click="setAspectRatio('3:4')" :disabled="isGenerating">
                     <div class="ratio-visual-box" style="width: 16px; height: 22px;"></div>
                     <span class="ratio-label">3:4</span>
                     <span class="ratio-desc">Portrait</span>
                 </button>
 
                 <!-- 21:9 Ultrawide -->
-                <button type="button" class="ratio-btn" :class="{ 'active': aspectRatio === '21:9' }" @click="!isGenerating && (aspectRatio = '21:9')" :disabled="isGenerating">
+                <button type="button" class="ratio-btn" :class="{ 'active': aspectRatio === '21:9' }" @click="setAspectRatio('21:9')" :disabled="isGenerating">
                     <div class="ratio-visual-box" style="width: 28px; height: 12px;"></div>
                     <span class="ratio-label">21:9</span>
                     <span class="ratio-desc">Ultrawide</span>
                 </button>
 
                 <!-- 9:21 Vertical Ultrawide -->
-                <button type="button" class="ratio-btn" :class="{ 'active': aspectRatio === '9:21' }" @click="!isGenerating && (aspectRatio = '9:21')" :disabled="isGenerating">
+                <button type="button" class="ratio-btn" :class="{ 'active': aspectRatio === '9:21' }" @click="setAspectRatio('9:21')" :disabled="isGenerating">
                     <div class="ratio-visual-box" style="width: 12px; height: 28px;"></div>
                     <span class="ratio-label">9:21</span>
                     <span class="ratio-desc">Ultra Tall</span>
                 </button>
 
                 <!-- adaptive -->
-                <button type="button" class="ratio-btn" :class="{ 'active': aspectRatio === 'adaptive' }" @click="!isGenerating && (aspectRatio = 'adaptive')" :disabled="isGenerating">
+                <button type="button" class="ratio-btn" :class="{ 'active': aspectRatio === 'adaptive' }" @click="setAspectRatio('adaptive')" :disabled="isGenerating">
                     <div class="ratio-visual-box" style="width: 20px; height: 20px; border-style: dashed;"></div>
                     <span class="ratio-label">Adaptive</span>
                     <span class="ratio-desc">Auto</span>
@@ -163,11 +163,11 @@
                 <span class="badge-val" :style="generateAudio ? 'color: #38bdf8; border-color: rgba(56,189,248,0.4);' : ''" x-text="generateAudio ? 'Audio Enabled' : 'No Audio'"></span>
             </div>
             <div class="segmented-group" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px;">
-                <button type="button" class="segmented-btn" :class="{ 'active': !generateAudio }" @click="!isGenerating && (generateAudio = false)" :disabled="isGenerating">
+                <button type="button" class="segmented-btn" :class="{ 'active': !generateAudio }" @click="setGenerateAudio(false)" :disabled="isGenerating">
                     <i data-lucide="volume-x" style="width: 15px; height: 15px; display: inline-block; vertical-align: middle; margin-right: 4px;"></i>
                     <span>No (Mute)</span>
                 </button>
-                <button type="button" class="segmented-btn" :class="{ 'active': generateAudio }" @click="!isGenerating && (generateAudio = true)" :disabled="isGenerating">
+                <button type="button" class="segmented-btn" :class="{ 'active': generateAudio }" @click="setGenerateAudio(true)" :disabled="isGenerating">
                     <i data-lucide="volume-2" style="width: 15px; height: 15px; display: inline-block; vertical-align: middle; margin-right: 4px;"></i>
                     <span>Yes (Audio)</span>
                 </button>

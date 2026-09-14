@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\User;
 use App\Models\VideoGeneration;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
@@ -19,7 +20,7 @@ class VideoGeneratorTest extends TestCase
         $response = $this->get('/tools/video-generator');
 
         $response->assertStatus(200);
-        $response->assertSee('Text-to-Video Generator');
+        $response->assertSee('Text-to-Video Audio');
         $response->assertSee('video-neural-canvas');
     }
 
@@ -61,22 +62,25 @@ class VideoGeneratorTest extends TestCase
      */
     public function test_video_generation_starts_successfully(): void
     {
-        $this->withSession(['supabase_user_id' => 'test-user-123']);
+        $user = User::factory()->create([
+            'credit_balance' => 100,
+        ]);
+
+        $this->actingAs($user)->withSession(['supabase_user_id' => (string) $user->id]);
 
         Http::fake([
-            '*/predictions' => Http::response([
+            '*/text-to-video-1-5-pro/run' => Http::response([
                 'id' => 'pred_vid_test_999',
-                'status' => 'starting',
+                'status' => 'submitted',
             ], 201),
         ]);
 
         $response = $this->postJson('/tools/video-generator/generate', [
             'prompt' => 'A cinematic video of ocean waves crashing on black basalt cliffs',
-            'aspect_ratio' => '16:9',
-            'frame_rate' => 24,
-            'steps' => 30,
-            'denoise_strength' => 0.85,
-            'guidance_scale' => 6.0,
+            'resolution' => '720p',
+            'ratio' => '16:9',
+            'duration' => 5,
+            'generate_audio' => false,
         ]);
 
         $response->assertStatus(201);
@@ -87,16 +91,19 @@ class VideoGeneratorTest extends TestCase
                 'id',
                 'prompt',
                 'aspect_ratio',
-                'width',
-                'height',
+                'resolution',
+                'duration',
                 'status',
                 'expires_at',
-            ]
+            ],
+            'credit_balance',
         ]);
 
         $this->assertDatabaseHas('video_generations', [
             'prompt' => 'A cinematic video of ocean waves crashing on black basalt cliffs',
             'aspect_ratio' => '16:9',
+            'resolution' => '720p',
+            'duration' => 5,
         ]);
     }
 
@@ -124,7 +131,7 @@ class VideoGeneratorTest extends TestCase
                 'id' => $videoGen->id,
                 'status' => 'succeeded',
                 'remote_url' => 'https://example.com/video.mp4',
-            ]
+            ],
         ]);
     }
 
@@ -157,7 +164,7 @@ class VideoGeneratorTest extends TestCase
             'generation' => [
                 'id' => $videoGen->id,
                 'status' => 'cancelled',
-            ]
+            ],
         ]);
 
         $this->assertDatabaseHas('video_generations', [

@@ -6,8 +6,11 @@ use App\Jobs\PollImageToVideoPredictionJob;
 use App\Models\CreditTransaction;
 use App\Models\User;
 use App\Models\VideoGeneration;
+use App\Services\AI\ImageToVideoException;
 use App\Services\AI\WanImageToVideoService;
+use App\Services\Credits\AiCreditPricingService;
 use App\Services\Credits\CreditService;
+use App\Services\Storage\R2StorageException;
 use App\Services\Storage\R2StorageService;
 use Exception;
 use Illuminate\Http\JsonResponse;
@@ -20,14 +23,19 @@ use Illuminate\Support\Str;
 class ImageToVideoController extends Controller
 {
     protected WanImageToVideoService $aiService;
+
     protected R2StorageService $r2Service;
+
     protected CreditService $creditService;
 
-    public function __construct(WanImageToVideoService $aiService, R2StorageService $r2Service, CreditService $creditService)
+    protected AiCreditPricingService $pricingService;
+
+    public function __construct(WanImageToVideoService $aiService, R2StorageService $r2Service, CreditService $creditService, AiCreditPricingService $pricingService)
     {
         $this->aiService = $aiService;
         $this->r2Service = $r2Service;
         $this->creditService = $creditService;
+        $this->pricingService = $pricingService;
     }
 
     /**
@@ -42,24 +50,24 @@ class ImageToVideoController extends Controller
     public function generate(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'image'             => 'required|file|mimes:jpg,jpeg,png,webp|max:15360',
-            'prompt'            => 'required|string|min:1|max:2000',
-            'aspect_ratio'      => 'nullable|string|in:16:9,9:16',
-            'resolution'        => 'nullable|string|in:720p,480p',
-            'num_frames'        => 'nullable|integer|min:1|max:500',
+            'image' => 'required|file|mimes:jpg,jpeg,png,webp|max:15360',
+            'prompt' => 'required|string|min:1|max:2000',
+            'aspect_ratio' => 'nullable|string|in:16:9,9:16',
+            'resolution' => 'nullable|string|in:720p,480p',
+            'num_frames' => 'nullable|integer|min:1|max:500',
             'frames_per_second' => 'nullable|integer|in:16,24',
-            'seed'              => 'nullable|integer|min:0|max:2147483647',
+            'seed' => 'nullable|integer|min:0|max:2147483647',
         ], [
-            'image.required'  => 'Please select a source image to animate.',
-            'image.file'      => 'The uploaded file must be a valid image.',
-            'image.mimes'     => 'Only JPG, JPEG, PNG, and WebP images are supported.',
-            'image.max'       => 'The image file size must not exceed 15 MB.',
+            'image.required' => 'Please select a source image to animate.',
+            'image.file' => 'The uploaded file must be a valid image.',
+            'image.mimes' => 'Only JPG, JPEG, PNG, and WebP images are supported.',
+            'image.max' => 'The image file size must not exceed 15 MB.',
             'prompt.required' => 'Please provide a motion prompt describing what should happen in the video.',
         ]);
 
         $userId = session('supabase_user_id') ?? ($request->user() ? (string) $request->user()->id : null);
 
-        if (!$userId) {
+        if (! $userId) {
             return response()->json([
                 'success' => false,
                 'error' => 'Authentication required. Please sign in or register to generate videos.',
@@ -70,10 +78,11 @@ class ImageToVideoController extends Controller
 
         // 1. Resolve User and check credit balance
         $user = $request->user() ?: User::where('id', $userId)->orWhere('email', session('supabase_user.email'))->first();
-        $creditCost = (int) config('credits.costs.image_to_video', 5);
+        $creditCost = $this->pricingService->getImageToVideoCost();
 
-        if (!$user || !$this->creditService->hasEnoughCredits($user, $creditCost)) {
+        if (! $user || ! $this->creditService->hasEnoughCredits($user, $creditCost)) {
             $currentBalance = $user ? $this->creditService->getBalance($user) : 0;
+
             return response()->json([
                 'success' => false,
                 'error' => 'insufficient_credits',
@@ -93,50 +102,49 @@ class ImageToVideoController extends Controller
             description: "Generation deduction for image-to-video: \"{$promptPreview}\""
         );
 
-
         try {
             // Step 1: Upload source image to Cloudflare R2
             $imageUpload = $this->r2Service->uploadImage($request->file('image'), $userId);
-            $r2ImageUrl  = $imageUpload['url'];
+            $r2ImageUrl = $imageUpload['url'];
             $r2ImagePath = $imageUpload['path'];
 
             $aspectRatio = $validated['aspect_ratio'] ?? '16:9';
-            $resolution  = $validated['resolution'] ?? '720p';
-            $numFrames   = (int) ($validated['num_frames'] ?? 81);
-            $fps         = (int) ($validated['frames_per_second'] ?? 24);
+            $resolution = $validated['resolution'] ?? '720p';
+            $numFrames = (int) ($validated['num_frames'] ?? 81);
+            $fps = (int) ($validated['frames_per_second'] ?? 24);
 
             // Step 2: Create initial record in database
             $generation = VideoGeneration::create([
-                'user_id'           => $userId,
-                'generation_type'   => 'image-to-video',
-                'prompt'            => trim($validated['prompt']),
-                'source_image_url'  => $r2ImageUrl,
+                'user_id' => $userId,
+                'generation_type' => 'image-to-video',
+                'prompt' => trim($validated['prompt']),
+                'source_image_url' => $r2ImageUrl,
                 'source_image_path' => $r2ImagePath,
-                'aspect_ratio'      => $aspectRatio,
-                'resolution'        => $resolution,
-                'num_frames'        => $numFrames,
-                'frame_rate'        => $fps,
-                'status'            => 'starting',
-                'job_dispatched'    => false,
-                'expires_at'        => now()->addHours(24),
+                'aspect_ratio' => $aspectRatio,
+                'resolution' => $resolution,
+                'num_frames' => $numFrames,
+                'frame_rate' => $fps,
+                'status' => 'starting',
+                'job_dispatched' => false,
+                'expires_at' => now()->addHours(24),
             ]);
 
             // Step 3: Create prediction on api.market provider
             $prediction = $this->aiService->createPrediction([
-                'image'             => $r2ImageUrl,
-                'prompt'            => $generation->prompt,
-                'resolution'        => $resolution,
-                'aspect_ratio'      => $aspectRatio,
-                'num_frames'        => $numFrames,
+                'image' => $r2ImageUrl,
+                'prompt' => $generation->prompt,
+                'resolution' => $resolution,
+                'aspect_ratio' => $aspectRatio,
+                'num_frames' => $numFrames,
                 'frames_per_second' => $fps,
-                'seed'              => $validated['seed'] ?? null,
+                'seed' => $validated['seed'] ?? null,
             ]);
 
             // Step 4: Save prediction ID and mark job_dispatched = true
             $generation->update([
-                'prediction_id'  => $prediction['id'],
-                'model_version'  => $prediction['version'] ?? config('services.magicapi.image_to_video_version'),
-                'status'         => $prediction['status'] ?? 'starting',
+                'prediction_id' => $prediction['id'],
+                'model_version' => $prediction['version'] ?? config('services.magicapi.image_to_video_version'),
+                'status' => $prediction['status'] ?? 'starting',
                 'job_dispatched' => true,
             ]);
 
@@ -144,36 +152,38 @@ class ImageToVideoController extends Controller
             $creditTxn->update(['reference_id' => $generation->id]);
 
             // Step 5: Dispatch background polling job
-            Log::info("[I2V DISPATCH] Dispatching PollImageToVideoPredictionJob for Generation {$generation->id} (Prediction ID: {$prediction['id']}, Queue: " . config('queue.default') . ")");
+            Log::info("[I2V DISPATCH] Dispatching PollImageToVideoPredictionJob for Generation {$generation->id} (Prediction ID: {$prediction['id']}, Queue: ".config('queue.default').')');
 
             PollImageToVideoPredictionJob::dispatch($generation->id)
                 ->delay(now()->addSeconds(3));
 
             return response()->json([
-                'success'        => true,
-                'generation'     => $generation->fresh(),
-                'prediction_id'  => $prediction['id'],
+                'success' => true,
+                'generation' => $generation->fresh(),
+                'prediction_id' => $prediction['id'],
                 'credit_balance' => $this->creditService->getBalance($user),
             ], 201);
 
-        } catch (\App\Services\Storage\R2StorageException $e) {
+        } catch (R2StorageException $e) {
             Log::error("ImageToVideoController R2 storage error: {$e->getMessage()}");
             $this->creditService->refundCredits($user, $creditCost, 'image_to_video', (string) $creditTxn->id, "Refunded due to storage error: {$e->getMessage()}");
+
             return response()->json(['success' => false, 'error' => $e->getMessage()], 422);
-        } catch (\App\Services\AI\ImageToVideoException $e) {
+        } catch (ImageToVideoException $e) {
             Log::error("ImageToVideoController AI prediction error: {$e->getMessage()}");
             $this->creditService->refundCredits($user, $creditCost, 'image_to_video', (string) $creditTxn->id, "Refunded due to AI prediction error: {$e->getMessage()}");
+
             return response()->json(['success' => false, 'error' => $e->getMessage()], 422);
         } catch (\Throwable $e) {
             Log::error("ImageToVideoController unexpected error: {$e->getMessage()}", ['exception' => $e]);
             $this->creditService->refundCredits($user, $creditCost, 'image_to_video', (string) $creditTxn->id, "Refunded due to unexpected error: {$e->getMessage()}");
+
             return response()->json([
                 'success' => false,
-                'error'   => 'An unexpected error occurred while starting your video generation. Please try again.',
+                'error' => 'An unexpected error occurred while starting your video generation. Please try again.',
             ], 500);
         }
     }
-
 
     /**
      * Get the current status of an Image-to-Video generation.
@@ -189,15 +199,15 @@ class ImageToVideoController extends Controller
             })
             ->first();
 
-        if (!$generation) {
+        if (! $generation) {
             return response()->json(['success' => false, 'error' => 'Generation record was not found.'], 404);
         }
 
         // Self-healing: if in-progress but job not dispatched (e.g. after worker restart),
         // re-dispatch the polling job if the generation is not expired and has a prediction ID.
         if (in_array($generation->status, ['starting', 'processing'], true)
-            && !$generation->job_dispatched
-            && !empty($generation->prediction_id)
+            && ! $generation->job_dispatched
+            && ! empty($generation->prediction_id)
             && ($generation->expires_at === null || $generation->expires_at->isFuture())
         ) {
             // Use a DB-level atomic update to prevent duplicate dispatch from concurrent requests
@@ -215,7 +225,7 @@ class ImageToVideoController extends Controller
         }
 
         return response()->json([
-            'success'    => true,
+            'success' => true,
             'generation' => $generation->fresh(),
         ]);
     }
@@ -235,7 +245,7 @@ class ImageToVideoController extends Controller
             })
             ->first();
 
-        if (!$generation) {
+        if (! $generation) {
             return response()->json(['success' => false, 'error' => 'Generation not found'], 404);
         }
 
@@ -243,9 +253,9 @@ class ImageToVideoController extends Controller
             Log::info("[I2V CANCEL] User requested cancellation of Generation {$generation->id} (Prediction ID: {$generation->prediction_id})");
 
             $generation->update([
-                'status'         => 'cancelled',
+                'status' => 'cancelled',
                 'job_dispatched' => false,
-                'error_message'  => 'Video generation was stopped by user.',
+                'error_message' => 'Video generation was stopped by user.',
             ]);
 
             if ($generation->prediction_id) {
@@ -257,8 +267,8 @@ class ImageToVideoController extends Controller
                 $alreadyRefunded = CreditTransaction::where('reference_id', $generation->id)
                     ->where('type', 'generation_refund')
                     ->exists();
-                if (!$alreadyRefunded) {
-                    $cost = (int) config('credits.costs.image_to_video', 5);
+                if (! $alreadyRefunded) {
+                    $cost = $this->pricingService->getImageToVideoCost();
                     try {
                         $this->creditService->refundCredits(
                             user: $generation->user_id,
@@ -268,7 +278,7 @@ class ImageToVideoController extends Controller
                             description: "Refunded {$cost} credits for cancelled video generation {$generation->id}"
                         );
                     } catch (Exception $refEx) {
-                        Log::error('[I2V CANCEL REFUND FAILED] ' . $refEx->getMessage());
+                        Log::error('[I2V CANCEL REFUND FAILED] '.$refEx->getMessage());
                     }
                 }
             }
@@ -276,7 +286,7 @@ class ImageToVideoController extends Controller
 
         return response()->json([
 
-            'success'    => true,
+            'success' => true,
             'generation' => $generation->fresh(),
         ]);
     }
@@ -288,7 +298,7 @@ class ImageToVideoController extends Controller
     {
         $userId = session('supabase_user_id') ?? ($request->user() ? (string) $request->user()->id : null);
 
-        if (!$userId) {
+        if (! $userId) {
             return response()->json([
                 'success' => true,
                 'history' => [],
@@ -329,11 +339,12 @@ class ImageToVideoController extends Controller
 
         if ($generation->video_path && Storage::disk('r2')->exists($generation->video_path)) {
             $publicUrl = $this->r2Service->buildPublicUrl($generation->video_path);
+
             return redirect()->away($publicUrl);
         }
 
         if ($generation->video_path && Storage::disk('public')->exists($generation->video_path)) {
-            return response()->download(storage_path('app/public/' . $generation->video_path), "cinematic-i2v-{$generation->id}.mp4");
+            return response()->download(storage_path('app/public/'.$generation->video_path), "cinematic-i2v-{$generation->id}.mp4");
         }
 
         abort(404, 'Video file not available for download.');

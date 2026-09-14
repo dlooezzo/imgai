@@ -3,7 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Models\Generation;
+use App\Models\SiteSetting;
+use App\Models\ToolArticle;
 use App\Models\VideoGeneration;
+use App\Services\Credits\AiCreditPricingService;
 use App\Services\Supabase\SupabaseService;
 use Illuminate\Http\Request;
 
@@ -11,9 +14,12 @@ class ToolController extends Controller
 {
     protected SupabaseService $supabase;
 
-    public function __construct(SupabaseService $supabase)
+    protected AiCreditPricingService $pricingService;
+
+    public function __construct(SupabaseService $supabase, AiCreditPricingService $pricingService)
     {
         $this->supabase = $supabase;
+        $this->pricingService = $pricingService;
     }
 
     /**
@@ -34,21 +40,21 @@ class ToolController extends Controller
             'anonKey' => $this->supabase->getAnonKey(),
         ];
 
-        $heroVideoUrl = \App\Models\SiteSetting::get('hero_showcase_video_url');
-        $heroVideoPath = \App\Models\SiteSetting::get('hero_showcase_video_path');
+        $heroVideoUrl = SiteSetting::get('hero_showcase_video_url');
+        $heroVideoPath = SiteSetting::get('hero_showcase_video_path');
 
-        if (empty($heroVideoUrl) && !empty($heroVideoPath)) {
-            $heroVideoUrl = asset('storage/' . $heroVideoPath);
+        if (empty($heroVideoUrl) && ! empty($heroVideoPath)) {
+            $heroVideoUrl = asset('storage/'.$heroVideoPath);
         }
 
-        if (!empty($heroVideoUrl) && request()->isSecure() && str_starts_with($heroVideoUrl, 'http://')) {
+        if (! empty($heroVideoUrl) && request()->isSecure() && str_starts_with($heroVideoUrl, 'http://')) {
             // Prevent mixed content blocking on HTTPS
-            $heroVideoUrl = 'https://' . substr($heroVideoUrl, 7);
+            $heroVideoUrl = 'https://'.substr($heroVideoUrl, 7);
         }
 
-        $heroVideoTitle = \App\Models\SiteSetting::get('hero_showcase_title', 'Neural Frame Synthesis');
-        $heroVideoCaption = \App\Models\SiteSetting::get('hero_showcase_caption', 'Spatial Diffusion • Volumetric Lighting • Temporal Consistency');
-        $heroVideoScale = (int) \App\Models\SiteSetting::get('hero_showcase_video_scale', 200);
+        $heroVideoTitle = SiteSetting::get('hero_showcase_title', 'Neural Frame Synthesis');
+        $heroVideoCaption = SiteSetting::get('hero_showcase_caption', 'Spatial Diffusion • Volumetric Lighting • Temporal Consistency');
+        $heroVideoScale = (int) SiteSetting::get('hero_showcase_video_scale', 200);
 
         return view('tools.index', [
             'activeTool' => 'overview',
@@ -82,7 +88,7 @@ class ToolController extends Controller
             'anonKey' => $this->supabase->getAnonKey(),
         ];
 
-        $toolArticle = \App\Models\ToolArticle::where('tool_key', 'image-generator')
+        $toolArticle = ToolArticle::where('tool_key', 'image-generator')
             ->where('status', 'published')
             ->first();
 
@@ -116,23 +122,13 @@ class ToolController extends Controller
             'anonKey' => $this->supabase->getAnonKey(),
         ];
 
-        $toolArticle = \App\Models\ToolArticle::where('tool_key', 'video-generator')
+        $toolArticle = ToolArticle::where('tool_key', 'video-generator')
             ->where('status', 'published')
             ->first();
 
-        $creditPolicy = config('credits.text_to_video_audio', [
-            'base' => (int) config('credits.costs.video_generation', 5),
-            'resolution_multiplier' => [
-                '480p'  => 1,
-                '720p'  => 2,
-                '1080p' => 3,
-            ],
-            'duration_multiplier' => [
-                5  => 1,
-                8  => 2,
-                12 => 3,
-            ],
-        ]);
+        // Build creditPolicy from DB-backed AiCreditPricingService.
+        // This includes the audio_multiplier and is always live from site_settings.
+        $creditPolicy = $this->pricingService->getTextToVideoPolicy();
 
         return view('tools.index', [
             'activeTool' => 'video-generator',
@@ -166,7 +162,7 @@ class ToolController extends Controller
             'anonKey' => $this->supabase->getAnonKey(),
         ];
 
-        $toolArticle = \App\Models\ToolArticle::where('tool_key', 'image-to-video')
+        $toolArticle = ToolArticle::where('tool_key', 'image-to-video')
             ->where('status', 'published')
             ->first();
 

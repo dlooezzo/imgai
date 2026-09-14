@@ -6,14 +6,16 @@ return [
     | Credit Costs for AI Generations
     |--------------------------------------------------------------------------
     |
-    | Configure the credit cost deducted per generation request.
-    | These can be overridden via environment variables.
+    | Fallback defaults ONLY. The authoritative pricing values come from the
+    | site_settings database table, accessed via AiCreditPricingService.
+    | Admin changes update site_settings and invalidate the cache —
+    | NO env file edits, code changes, or redeployments required.
     |
     */
     'costs' => [
-        'image_generation' => (int) env('CREDIT_COST_IMAGE_GENERATION', 1),
-        'video_generation' => (int) env('CREDIT_COST_VIDEO_GENERATION', 5),
-        'image_to_video'   => (int) env('CREDIT_COST_IMAGE_TO_VIDEO', 5),
+        'image_generation' => 1,
+        'video_generation' => 5,
+        'image_to_video' => 5,
     ],
 
     /*
@@ -31,22 +33,31 @@ return [
     | Audio does NOT add an extra multiplier as the API provides no separate
     | credit cost for audio generation.
     |
+    | These are fallback defaults ONLY. The authoritative values live in
+    | site_settings (ai_credit.video.* keys). See AiCreditPricingService.
+    |
     */
     'text_to_video_audio' => [
-        'base' => (int) env('CREDIT_COST_VIDEO_GENERATION', 5),
+        'base' => 5,
 
         // Application credit policy — NOT API.market pricing
         'resolution_multiplier' => [
-            '480p'  => (int) env('CREDIT_MULTIPLIER_480P', 1),
-            '720p'  => (int) env('CREDIT_MULTIPLIER_720P', 2),
-            '1080p' => (int) env('CREDIT_MULTIPLIER_1080P', 3),
+            '480p' => 1,
+            '720p' => 2,
+            '1080p' => 3,
         ],
 
         // Application credit policy — NOT API.market pricing
         'duration_multiplier' => [
-            5  => (int) env('CREDIT_MULTIPLIER_5S', 1),
-            8  => (int) env('CREDIT_MULTIPLIER_8S', 2),
-            12 => (int) env('CREDIT_MULTIPLIER_12S', 3),
+            5 => 1,
+            8 => 2,
+            12 => 3,
+        ],
+
+        // Audio multiplier — Application credit policy
+        'audio_multiplier' => [
+            'no' => 1,
+            'yes' => 2,
         ],
     ],
 
@@ -56,7 +67,9 @@ return [
     |--------------------------------------------------------------------------
     |
     | Number of free credits granted to newly registered users if any.
+    | Fallback default. Authoritative value: ai_credit.default_free_credits
+    | in the site_settings table.
     |
     */
-    'default_free_credits' => (int) env('DEFAULT_FREE_CREDITS', 0),
+    'default_free_credits' => 0,
 ];

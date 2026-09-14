@@ -26,5 +26,10 @@ if [ ! -L "/var/www/html/public/storage" ] && [ ! -d "/var/www/html/public/stora
     php artisan storage:link || true
 fi
 
+# Run pending database migrations automatically in production
+echo "==> Running database migrations in production..."
+php artisan migrate --force
+echo "==> Database migrations completed successfully."
+
 # Execute the container command (defaults to apache2-foreground)
 exec "$@"

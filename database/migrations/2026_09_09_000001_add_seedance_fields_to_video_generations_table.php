@@ -24,20 +24,29 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('video_generations', function (Blueprint $table) {
-            if (!Schema::hasColumn('video_generations', 'duration')) {
-                $table->unsignedTinyInteger('duration')->default(5)->after('resolution');
+            if (! Schema::hasColumn('video_generations', 'aspect_ratio')) {
+                $table->string('aspect_ratio', 10)->default('16:9');
             }
-            if (!Schema::hasColumn('video_generations', 'generate_audio')) {
-                $table->boolean('generate_audio')->default(false)->after('duration');
+            if (! Schema::hasColumn('video_generations', 'resolution')) {
+                $table->string('resolution', 10)->nullable();
             }
-            if (!Schema::hasColumn('video_generations', 'seed')) {
-                $table->bigInteger('seed')->nullable()->after('generate_audio');
+            if (! Schema::hasColumn('video_generations', 'duration')) {
+                $table->unsignedTinyInteger('duration')->default(5);
             }
-            if (!Schema::hasColumn('video_generations', 'camerafixed')) {
-                $table->boolean('camerafixed')->default(false)->after('seed');
+            if (! Schema::hasColumn('video_generations', 'generate_audio')) {
+                $table->boolean('generate_audio')->default(false);
             }
-            if (!Schema::hasColumn('video_generations', 'watermark')) {
-                $table->boolean('watermark')->default(false)->after('camerafixed');
+            if (! Schema::hasColumn('video_generations', 'seed')) {
+                $table->bigInteger('seed')->nullable();
+            }
+            if (! Schema::hasColumn('video_generations', 'camerafixed')) {
+                $table->boolean('camerafixed')->default(false);
+            }
+            if (! Schema::hasColumn('video_generations', 'watermark')) {
+                $table->boolean('watermark')->default(false);
+            }
+            if (! Schema::hasColumn('video_generations', 'credits_charged')) {
+                $table->unsignedInteger('credits_charged')->default(0);
             }
         });
     }
@@ -54,6 +63,7 @@ return new class extends Migration
                 Schema::hasColumn('video_generations', 'seed') ? 'seed' : null,
                 Schema::hasColumn('video_generations', 'camerafixed') ? 'camerafixed' : null,
                 Schema::hasColumn('video_generations', 'watermark') ? 'watermark' : null,
+                Schema::hasColumn('video_generations', 'credits_charged') ? 'credits_charged' : null,
             ]));
         });
     }

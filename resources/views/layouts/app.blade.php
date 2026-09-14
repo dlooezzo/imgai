@@ -17,8 +17,8 @@
     <!-- Supabase JS Client SDK -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-    <!-- App JavaScript -->
-    <script src="/js/app.js"></script>
+    <!-- App JavaScript (with cache-busting) -->
+    <script src="/js/app.js?v={{ file_exists(public_path('js/app.js')) ? filemtime(public_path('js/app.js')) : time() }}"></script>
 
     <!-- Alpine.js Core -->
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.8/dist/cdn.min.js"></script>
@@ -68,7 +68,7 @@
 @endphp
 <body x-data="{{ $appStore }}({{ json_encode($appConfig) }})">
 
-    <div class="app-shell" x-data="{ mobileMenuOpen: false }">
+    <div class="app-shell">
         <!-- Top Navigation Header -->
         <header class="app-header">
             <div style="display: flex; align-items: center; gap: 24px;">
