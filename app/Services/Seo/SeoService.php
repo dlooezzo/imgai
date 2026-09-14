@@ -56,8 +56,8 @@ class SeoService
                 'site_name' => SiteSetting::get('seo_site_name', SiteSetting::get('site_title', config('app.name', 'IMGAI'))),
                 'title_format' => SiteSetting::get('seo_title_format', '%title% | %site_name%'),
                 'default_title' => SiteSetting::get('seo_default_title', 'IMGAI — Cinematic 2MP Image & Video AI Creation Studio'),
-                'default_description' => SiteSetting::get('seo_default_description', 'Synthesize photorealistic 2MP cinematic imagery and fluid motion video sequences with Wan 2.2 and Tencent Hunyuan generative AI diffusion models.'),
-                'meta_keywords' => SiteSetting::get('seo_meta_keywords', 'AI image generator, text to image, AI video studio, photorealistic AI, Wan 2.2, Hunyuan'),
+                'default_description' => SiteSetting::get('seo_default_description', 'Synthesize photorealistic 2MP cinematic imagery and fluid motion video sequences with Wan 2.2 and Seedance 1.5 Pro generative AI models.'),
+                'meta_keywords' => SiteSetting::get('seo_meta_keywords', 'AI image generator, text to image, AI video studio, photorealistic AI, Wan 2.2, Seedance'),
                 'default_og_image' => SiteSetting::get('seo_default_og_image', $appUrl . '/images/og-showcase-preview.jpg'),
                 'default_twitter_image' => SiteSetting::get('seo_default_twitter_image', $appUrl . '/images/twitter-card-preview.jpg'),
                 'default_robots' => SiteSetting::get('seo_default_robots', 'index, follow'),
@@ -67,7 +67,7 @@ class SeoService
                 
                 // Homepage overrides (Optimized 50-60 title, 140-160 desc)
                 'homepage_title' => SiteSetting::get('seo_homepage_title', 'IMGAI — Cinematic 2MP Image & Video AI Studio Platform'),
-                'homepage_description' => SiteSetting::get('seo_homepage_description', 'Transform creative ideas into photorealistic 2MP visual assets and 24 FPS cinematic motion videos with Wan 2.2 and Hunyuan generative AI models.'),
+                'homepage_description' => SiteSetting::get('seo_homepage_description', 'Transform creative ideas into photorealistic 2MP visual assets and cinematic motion videos with Wan 2.2 and Seedance 1.5 Pro AI models.'),
                 'homepage_og_image' => SiteSetting::get('seo_homepage_og_image', ''),
                 'homepage_robots' => SiteSetting::get('seo_homepage_robots', 'index, follow'),
 
@@ -76,7 +76,7 @@ class SeoService
                 'tool_image_description' => SiteSetting::get('seo_tool_image_description', 'Synthesize photorealistic 2MP ultra-high definition images from text prompts with precise lighting, rich texture, and custom aspect ratios on IMGAI.'),
                 'tool_image_og_image' => SiteSetting::get('seo_tool_image_og_image', ''),
 
-                'tool_video_title' => SiteSetting::get('seo_tool_video_title', 'Text-to-Video AI Generator — Hunyuan Diffusion 24FPS | IMGAI'),
+                'tool_video_title' => SiteSetting::get('seo_tool_video_title', 'Text-to-Video Audio AI Generator — Seedance 1.5 Pro | IMGAI'),
                 'tool_video_description' => SiteSetting::get('seo_tool_video_description', 'Generate fluid temporal cinematic motion video sequences from text prompts at 24 FPS with direct high-definition MP4 export on IMGAI AI Studio.'),
                 'tool_video_og_image' => SiteSetting::get('seo_tool_video_og_image', ''),
 

@@ -60,7 +60,7 @@
             <div class="stat-content">
                 <span class="stat-label">Video Generations</span>
                 <span class="stat-value">{{ number_format($stats['total_videos']) }}</span>
-                <span class="stat-hint">Hunyuan & Wan 2.2</span>
+                <span class="stat-hint">Seedance 1.5 & Wan 2.2</span>
             </div>
             <div class="stat-icon-wrapper" style="background: rgba(139, 92, 246, 0.15); color: #c084fc; border-color: rgba(139, 92, 246, 0.3);">
                 <i data-lucide="video"></i>

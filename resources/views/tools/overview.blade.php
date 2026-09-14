@@ -59,7 +59,7 @@
                         </div>
                         <div class="metric-text">
                             <span class="metric-label">Temporal Motion Engine</span>
-                            <span class="metric-sub">Hunyuan Diffusion 24 FPS</span>
+                            <span class="metric-sub">Seedance 1.5 Pro Temporal Diffusion</span>
                         </div>
                     </div>
                 </div>
@@ -257,7 +257,7 @@
                     <div class="tool-card-icon-wrap icon-purple">
                         <i data-lucide="video" style="width: 24px; height: 24px;"></i>
                     </div>
-                    <div class="tool-card-badge">Hunyuan-Video</div>
+                    <div class="tool-card-badge">Seedance 1.5 Pro</div>
                 </div>
 
                 <div class="tool-card-body">
@@ -349,7 +349,7 @@
                     </div>
                     <h4 class="pillar-title">Photorealistic Detail</h4>
                     <p class="pillar-desc">
-                        Wan 2.2 and Hunyuan neural models ensure fine micro-textures, authentic lighting, and coherent geometry.
+                        Wan 2.2 and Seedance 1.5 Pro neural models ensure fine micro-textures, authentic lighting, and coherent geometry.
                     </p>
                 </div>
 

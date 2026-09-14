@@ -24,7 +24,7 @@ class OverviewTest extends TestCase
         $response->assertSee('Text-to-Video Generator');
         $response->assertSee('CINEMATIC MOTION CORE');
         $response->assertSee('Wan 2.2 Cinematic');
-        $response->assertSee('Hunyuan-Video');
+        $response->assertSee('Seedance 1.5 Pro');
         $response->assertSee('Studio Overview');
     }
 }

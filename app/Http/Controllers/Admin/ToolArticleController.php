@@ -32,12 +32,12 @@ class ToolArticleController extends Controller
         'video-generator' => [
             'key' => 'video-generator',
             'name' => 'Text-to-Video Generator',
-            'model' => 'Tencent Hunyuan-Video (24 FPS)',
+            'model' => 'Seedance 1.5 Pro (Text-to-Video Audio)',
             'public_url' => '/tools/video-generator',
-            'badge' => 'Text-to-Video',
-            'default_title' => 'Mastering Cinematic Text-to-Video Diffusion at 24 FPS',
-            'default_seo_title' => 'Text-to-Video AI Generator — Hunyuan Diffusion 24FPS | IMGAI',
-            'default_meta_description' => 'Generate fluid temporal cinematic motion video sequences from text prompts at 24 FPS with direct high-definition MP4 export on IMGAI AI Studio.',
+            'badge' => 'Text-to-Video Audio',
+            'default_title' => 'Mastering Cinematic Text-to-Video Synthesis with Seedance 1.5 Pro',
+            'default_seo_title' => 'Text-to-Video Audio AI Generator — Seedance 1.5 Pro | IMGAI',
+            'default_meta_description' => 'Generate fluid temporal cinematic motion video sequences from text prompts with optional audio and direct high-definition MP4 export on IMGAI AI Studio.',
         ],
         'image-to-video' => [
             'key' => 'image-to-video',

@@ -13,7 +13,7 @@
                 Video Generations Gallery
             </h1>
             <p style="color: #94a3b8; font-size: 0.88rem;">
-                Catalogue of Text-to-Video (Hunyuan) and Image-to-Video (Wan 2.2) creations.
+                Catalogue of Text-to-Video Audio (Seedance 1.5 Pro) and Image-to-Video (Wan 2.2) creations.
             </p>
         </div>
 
@@ -35,7 +35,7 @@
         <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
             <select name="type" class="admin-select" onchange="this.form.submit()">
                 <option value="">All Video Engines</option>
-                <option value="text-to-video" {{ $type === 'text-to-video' ? 'selected' : '' }}>Text-to-Video (Hunyuan) ({{ $textToVideos }})</option>
+                <option value="text-to-video" {{ $type === 'text-to-video' ? 'selected' : '' }}>Text-to-Video Audio (Seedance 1.5 Pro) ({{ $textToVideos }})</option>
                 <option value="image-to-video" {{ $type === 'image-to-video' ? 'selected' : '' }}>Image-to-Video (Wan 2.2) ({{ $imageToVideos }})</option>
             </select>
 
@@ -92,7 +92,7 @@
                                 </span>
                             @else
                                 <span class="badge" style="background: rgba(139, 92, 246, 0.25); border: 1px solid rgba(139, 92, 246, 0.4); color: #c084fc; font-size: 0.68rem; backdrop-filter: blur(8px);">
-                                    Hunyuan T2V
+                                     Seedance T2V
                                 </span>
                             @endif
                         </div>

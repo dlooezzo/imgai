@@ -117,12 +117,12 @@
                     <input type="text" name="api_market_base_url" value="{{ old('api_market_base_url', $imgUrl) }}" placeholder="https://prod.api.market/api/v1/magicapi/cinematic-text-to-image-generator" class="admin-input" style="width: 100%; box-sizing: border-box; font-family: 'JetBrains Mono', monospace; font-size: 0.86rem; color: var(--admin-cyan);">
                 </div>
 
-                <!-- Text-to-Video Endpoint -->
+                <!-- Text-to-Video Audio Endpoint -->
                 <div>
                     <label style="display: block; font-size: 0.84rem; font-weight: 700; color: #f8fafc; margin-bottom: 6px;">
-                        Tencent Hunyuan Video Endpoint
+                        Seedance 1.5 Pro Video Endpoint
                     </label>
-                    <input type="text" name="api_market_video_base_url" value="{{ old('api_market_video_base_url', $vidUrl) }}" placeholder="https://prod.api.market/api/v1/magicapi/hunyuan-video" class="admin-input" style="width: 100%; box-sizing: border-box; font-family: 'JetBrains Mono', monospace; font-size: 0.86rem; color: var(--admin-cyan);">
+                    <input type="text" name="api_market_video_base_url" value="{{ old('api_market_video_base_url', $vidUrl) }}" placeholder="https://prod.api.market/api/v1/byteplus/seedance-text-to-video-1-5-pro" class="admin-input" style="width: 100%; box-sizing: border-box; font-family: 'JetBrains Mono', monospace; font-size: 0.86rem; color: var(--admin-cyan);">
                 </div>
 
                 <!-- Image-to-Video Endpoint -->

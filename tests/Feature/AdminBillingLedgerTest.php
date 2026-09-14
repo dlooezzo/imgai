@@ -87,7 +87,7 @@ class AdminBillingLedgerTest extends TestCase
             'type' => 'generation_deduction',
             'source' => 'video_generation',
             'reference_id' => 'gen_vid_456',
-            'description' => 'Hunyuan video generation deduction',
+            'description' => 'Seedance video generation deduction',
             'balance_after' => 495,
         ]);
 

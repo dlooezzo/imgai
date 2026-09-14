@@ -25,7 +25,7 @@ class PageSeeder extends Seeder
 <p>Our infrastructure orchestrates leading generative foundation models:</p>
 <ul>
     <li><strong>Wan 2.2 Cinematic Diffusion:</strong> Generates crisp 2-Megapixel photorealistic imagery with accurate spatial lighting, micro-textures, and rich color dynamics.</li>
-    <li><strong>Tencent Hunyuan-Video:</strong> Powers our pure text-to-video generation pipeline with temporal coherence, physical realism, and fluid 24 FPS motion dynamics.</li>
+    <li><strong>Seedance 1.5 Pro Text-to-Video Audio:</strong> Powers our pure text-to-video generation pipeline with temporal coherence, physical realism, optional audio, and cinematic motion dynamics.</li>
     <li><strong>Wan 2.2 Image-to-Video Engine:</strong> Transforms static photographs and 2D illustrations into living cinematic clips up to 81 frames with seamless camera transitions.</li>
 </ul>
 
@@ -37,7 +37,7 @@ HTML,
                 'navigation_label' => 'About',
                 'navigation_order' => 1,
                 'meta_title' => 'About IMGAI — Next-Gen Cinematic AI Studio Platform',
-                'meta_description' => 'Discover IMGAI, the next-generation generative AI studio uniting Wan 2.2 and Hunyuan models for photorealistic 2MP image and video synthesis.',
+                'meta_description' => 'Discover IMGAI, the next-generation generative AI studio uniting Wan 2.2 and Seedance 1.5 Pro models for photorealistic 2MP image and video synthesis.',
             ],
             [
                 'title' => 'Pricing & Generation Plans',
@@ -89,7 +89,7 @@ HTML,
 <p>Our Text-to-Image pipeline natively renders images up to 2 Megapixels across multiple aspect ratios including 1:1 (Square), 16:9 (Landscape), 9:16 (Story/Reel), 4:3 (Classic), and 21:9 (Ultrawide).</p>
 
 <h3>Which video models are integrated?</h3>
-<p>We utilize <strong>Tencent Hunyuan-Video</strong> for pure Text-to-Video generation and <strong>Wan 2.2</strong> for Image-to-Video transformations. Both output high-definition MP4 files with fluid 24 FPS motion.</p>
+<p>We utilize <strong>Seedance 1.5 Pro</strong> for pure Text-to-Video Audio generation and <strong>Wan 2.2</strong> for Image-to-Video transformations. Both output high-definition MP4 files with fluid cinematic motion.</p>
 
 <h3>Where are my generated videos stored?</h3>
 <p>All video outputs and source upload images are stored securely in <strong>Cloudflare R2 Object Storage</strong>, enabling rapid streaming and zero egress fees when downloading your media assets.</p>

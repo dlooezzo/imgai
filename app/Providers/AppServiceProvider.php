@@ -72,8 +72,9 @@ class AppServiceProvider extends ServiceProvider
                 if ($imgVer = \App\Models\SiteSetting::get('ai_model_image_version')) {
                     config(['services.magicapi.version' => $imgVer]);
                 }
+                // Text-to-Video Audio (Seedance 1.5 Pro) model URL override
                 if ($vidUrl = \App\Models\SiteSetting::get('ai_model_video_url', \App\Models\SiteSetting::get('api_market_video_base_url'))) {
-                    config(['services.magicapi.video_base_url' => $vidUrl]);
+                    config(['services.magicapi.seedance_video_base_url' => $vidUrl]);
                 }
                 if ($vidVer = \App\Models\SiteSetting::get('ai_model_video_version')) {
                     config(['services.magicapi.video_version' => $vidVer]);

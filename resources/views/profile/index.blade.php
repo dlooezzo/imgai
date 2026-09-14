@@ -82,7 +82,7 @@
             <div class="stat-content">
                 <div class="stat-label">Videos Rendered</div>
                 <div class="stat-value" x-text="stats.total_videos"></div>
-                <div class="stat-subtext">Hunyuan Video Engine</div>
+                <div class="stat-subtext">Seedance 1.5 Pro Engine</div>
             </div>
         </div>
     </div>
@@ -191,7 +191,7 @@
                                 <i data-lucide="video" style="width: 16px; height: 16px; color: var(--brand-primary);"></i>
                                 <span>Video Synthesis Engine</span>
                             </div>
-                            <div class="studio-meta-val">Tencent Hunyuan (720p/1080p)</div>
+                            <div class="studio-meta-val">Seedance 1.5 Pro (480p/720p/1080p)</div>
                         </div>
 
                         <div class="studio-meta-row">

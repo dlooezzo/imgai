@@ -87,7 +87,7 @@ class GenerationController extends Controller
                     'user_id' => $vid->user_id,
                     'prediction_id' => $vid->prediction_id,
                     'prompt' => $vid->prompt,
-                    'model' => ($vid->generation_type === 'image-to-video') ? 'Wan 2.2' : 'Hunyuan Video',
+                    'model' => ($vid->generation_type === 'image-to-video') ? 'Wan 2.2' : 'Seedance 1.5 Pro',
                     'status' => $vid->status,
                     'preview_url' => $vid->video_url,
                     'aspect_ratio' => $vid->aspect_ratio,

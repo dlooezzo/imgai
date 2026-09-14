@@ -101,7 +101,7 @@ class AdminBrandingSeoTest extends TestCase
             'seo_tool_image_description' => 'Generate high definition photorealistic images.',
             'seo_tool_image_og_image' => 'https://cdn.example.com/t2i-og.jpg',
 
-            'seo_tool_video_title' => 'AI Video Generator — Hunyuan',
+            'seo_tool_video_title' => 'AI Video Generator — Seedance 1.5 Pro',
             'seo_tool_video_description' => 'Generate temporal motion videos at 24 fps.',
             'seo_tool_video_og_image' => 'https://cdn.example.com/t2v-og.jpg',
 
@@ -128,7 +128,7 @@ class AdminBrandingSeoTest extends TestCase
         $this->assertEquals('Custom Homepage Title — 2MP Studio', SiteSetting::get('seo_homepage_title'));
         $this->assertEquals('Default Global SEO Title', SiteSetting::get('seo_default_title'));
         $this->assertEquals('AI Image Generator — Wan 2.2', SiteSetting::get('seo_tool_image_title'));
-        $this->assertEquals('AI Video Generator — Hunyuan', SiteSetting::get('seo_tool_video_title'));
+        $this->assertEquals('AI Video Generator — Seedance 1.5 Pro', SiteSetting::get('seo_tool_video_title'));
         $this->assertEquals('Image to Video — Motion Studio', SiteSetting::get('seo_tool_i2v_title'));
         $this->assertEquals('google-test-token-123', SiteSetting::get('seo_google_verification'));
         $this->assertEquals('bing-test-token-456', SiteSetting::get('seo_bing_verification'));

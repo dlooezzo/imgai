@@ -332,7 +332,7 @@
                          x-text="form.seo_homepage_title || form.seo_default_title || 'IMGAI — Cinematic 2MP Image & Video AI Creation Studio'">
                     </div>
                     <div style="color: #4d5156; font-size: 13px; line-height: 1.45; word-wrap: break-word;"
-                         x-text="form.seo_homepage_description || form.seo_default_description || 'Synthesize photorealistic 2MP cinematic imagery and fluid motion video sequences with Wan 2.2 and Tencent Hunyuan generative AI diffusion models.'">
+                         x-text="form.seo_homepage_description || form.seo_default_description || 'Synthesize photorealistic 2MP cinematic imagery and fluid motion video sequences with Wan 2.2 and Seedance 1.5 Pro generative AI models.'">
                     </div>
                 </div>
             </div>
@@ -420,7 +420,7 @@
                         <label style="display: block; font-size: 0.84rem; font-weight: 700; color: #f8fafc; margin-bottom: 6px;">
                             Meta Keywords (Comma-Separated)
                         </label>
-                        <input type="text" name="seo_meta_keywords" x-model="form.seo_meta_keywords" placeholder="AI image generator, text to image, AI video studio, photorealistic AI, Wan 2.2, Hunyuan" class="admin-input" style="width: 100%; box-sizing: border-box; font-size: 0.86rem;">
+                         <input type="text" name="seo_meta_keywords" x-model="form.seo_meta_keywords" placeholder="AI image generator, text to image, AI video studio, photorealistic AI, Wan 2.2, Seedance" class="admin-input" style="width: 100%; box-sizing: border-box; font-size: 0.86rem;">
                         <span style="font-size: 0.74rem; color: #64748b; margin-top: 4px; display: block;">Renders in &lt;meta name="keywords" content="..."&gt; tag.</span>
                     </div>
 

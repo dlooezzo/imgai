@@ -22,7 +22,7 @@ class ApiMarketController extends Controller
         $isConfigured = !empty($rawKey) && !str_contains($rawKey, 'YOUR_API_MARKET_KEY');
 
         $imgUrl = SiteSetting::get('api_market_base_url', SiteSetting::get('ai_model_image_url', config('services.magicapi.base_url', env('MAGICAPI_BASE_URL', ''))));
-        $vidUrl = SiteSetting::get('api_market_video_base_url', SiteSetting::get('ai_model_video_url', config('services.magicapi.video_base_url', env('MAGICAPI_VIDEO_BASE_URL', ''))));
+        $vidUrl = SiteSetting::get('api_market_video_base_url', SiteSetting::get('ai_model_video_url', config('services.magicapi.seedance_video_base_url', env('SEEDANCE_VIDEO_BASE_URL', ''))));
         $i2vUrl = SiteSetting::get('api_market_i2v_base_url', SiteSetting::get('ai_model_i2v_url', config('services.magicapi.image_to_video_base_url', env('MAGICAPI_IMAGE_TO_VIDEO_BASE_URL', ''))));
 
         $providers = [
@@ -35,11 +35,11 @@ class ApiMarketController extends Controller
                 'status' => $isConfigured ? 'Active' : 'Unconfigured',
             ],
             [
-                'name' => 'Tencent Hunyuan-Video',
+                'name' => 'Seedance 1.5 Pro (Text-to-Video Audio)',
                 'key' => 'api_market_video_base_url',
                 'endpoint' => $vidUrl,
-                'version' => SiteSetting::get('ai_model_video_version', config('services.magicapi.video_version', env('MAGICAPI_VIDEO_VERSION', ''))),
-                'type' => 'Text-to-Video',
+                'version' => SiteSetting::get('ai_model_video_version', 'text-to-video-1-5-pro'),
+                'type' => 'Text-to-Video Audio',
                 'status' => $isConfigured ? 'Active' : 'Unconfigured',
             ],
             [
@@ -92,6 +92,7 @@ class ApiMarketController extends Controller
             SiteSetting::set('api_market_video_base_url', $url);
             SiteSetting::set('ai_model_video_url', $url);
             config(['services.magicapi.video_base_url' => $url]);
+            config(['services.magicapi.seedance_video_base_url' => $url]);
         }
 
         if (isset($validated['api_market_i2v_base_url'])) {

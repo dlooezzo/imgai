@@ -80,7 +80,7 @@ class DashboardController extends Controller
                 'type_label' => ($gen->generation_type === 'image-to-video') ? 'Image-to-Video' : 'Text-to-Video',
                 'user_id' => $gen->user_id,
                 'prompt' => $gen->prompt,
-                'model' => ($gen->generation_type === 'image-to-video') ? 'Wan 2.2' : 'Hunyuan Video',
+                'model' => ($gen->generation_type === 'image-to-video') ? 'Wan 2.2' : 'Seedance 1.5 Pro',
                 'status' => $gen->status,
                 'preview_url' => $gen->video_url,
                 'created_at' => $gen->created_at,

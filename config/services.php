@@ -39,8 +39,9 @@ return [
         'base_url' => env('MAGICAPI_BASE_URL', 'https://prod.api.market/api/v1/magicapi/cinematic-text-to-image-generator'),
         'key' => env('API_MARKET_KEY'),
         'version' => env('MAGICAPI_MODEL_VERSION', '16e15e913fcc71c1a5defb335ea84739f99731fa1ee17995117c7d9adc6d176c'),
-        'video_base_url' => env('MAGICAPI_VIDEO_BASE_URL'),
-        'video_version' => env('MAGICAPI_VIDEO_VERSION', '6c9132aee14409cd6568d030453f1ba50f5f3412b844fe67f78a9eb62d55664f'),
+        // Text-to-Video Audio (Seedance 1.5 Pro)
+        'video_base_url' => env('SEEDANCE_VIDEO_BASE_URL', 'https://prod.api.market/api/v1/byteplus/seedance-text-to-video-1-5-pro'),
+        'video_version' => env('SEEDANCE_VIDEO_VERSION', 'text-to-video-1-5-pro'),
         'image_to_video_base_url' => env('MAGICAPI_IMAGE_TO_VIDEO_BASE_URL', 'https://prod.api.market/api/v1/magicapi/ultra-fast-text-to-image-image-to-video-api'),
         'image_to_video_version' => env('MAGICAPI_IMAGE_TO_VIDEO_VERSION', 'c92ab4265c9b3b5ea9ac9a87df839ebfd662ee3a820d62c21305bf6501a73fe1'),
         // Seedance 1.5 Pro — Text-to-Video Audio

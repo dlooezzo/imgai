@@ -17,13 +17,13 @@ class MagicApiVideoService implements VideoGenerationInterface
 
     public function __construct()
     {
-        $this->baseUrl = rtrim((string) (config('services.magicapi.video_base_url') ?: env('MAGICAPI_VIDEO_BASE_URL')), '/');
+        $this->baseUrl = rtrim((string) (config('services.magicapi.seedance_video_base_url') ?: env('SEEDANCE_VIDEO_BASE_URL', 'https://prod.api.market/api/v1/byteplus/seedance-text-to-video-1-5-pro')), '/');
         $this->apiKey = config('services.magicapi.key') ?: env('API_MARKET_KEY');
-        $this->defaultVersion = (string) (config('services.magicapi.video_version') ?: env('MAGICAPI_VIDEO_VERSION', '6c9132aee14409cd6568d030453f1ba50f5f3412b844fe67f78a9eb62d55664f'));
+        $this->defaultVersion = (string) (config('services.magicapi.video_version', 'text-to-video-1-5-pro'));
     }
 
     /**
-     * Submit an asynchronous pure text-to-video prediction request (Tencent Hunyuan-Video).
+     * Submit an asynchronous text-to-video prediction request (Seedance 1.5 Pro — Text-to-Video Audio).
      */
     public function createPrediction(array $parameters): array
     {
@@ -59,7 +59,7 @@ class MagicApiVideoService implements VideoGenerationInterface
             }
         }
 
-        // Pure Text-to-Video payload schema for tencent/hunyuan-video
+        // Text-to-Video Audio payload schema for Seedance 1.5 Pro
         $input = [
             'prompt' => $parameters['prompt'],
             'width' => $width,

@@ -36,7 +36,7 @@
         <!-- Article Footer / CTA -->
         <footer style="margin-top: 48px; padding-top: 24px; border-top: 1px solid rgba(255, 255, 255, 0.08); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px;">
             <div style="font-size: 0.82rem; color: #64748b;">
-                Published by <strong style="color: #cbd5e1;">IMGAI AI Creative Studio</strong> &bull; Wan 2.2 & Tencent Hunyuan Architecture
+                Published by <strong style="color: #cbd5e1;">IMGAI AI Creative Studio</strong> &bull; Wan 2.2 & Seedance 1.5 Pro Architecture
             </div>
             <a href="#top" onclick="window.scrollTo({top: 0, behavior: 'smooth'}); return false;" style="font-size: 0.82rem; color: var(--brand-cyan); text-decoration: none; display: flex; align-items: center; gap: 6px;">
                 <span>Back to AI Generator</span>

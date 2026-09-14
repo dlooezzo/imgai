@@ -298,7 +298,7 @@
                 </div>
 
                 <div style="font-size: 0.88rem; color: #4d5156; line-height: 1.45; max-width: 680px;"
-                     x-text="form.seo_homepage_description || 'Transform creative ideas into photorealistic 2MP visual assets and 24 FPS cinematic motion videos with Wan 2.2 and Hunyuan generative AI models.'">
+                     x-text="form.seo_homepage_description || 'Transform creative ideas into photorealistic 2MP visual assets and cinematic motion videos with Wan 2.2 and Seedance 1.5 Pro AI models.'">
                 </div>
             </div>
 

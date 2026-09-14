@@ -309,40 +309,44 @@ class SystemStatusController extends Controller
      */
     protected function checkTextToVideo(): array
     {
-        $url = config('services.magicapi.video_base_url', env('MAGICAPI_VIDEO_BASE_URL'));
+        $url = SiteSetting::get('ai_model_video_url', config('services.magicapi.seedance_video_base_url', env('SEEDANCE_VIDEO_BASE_URL', 'https://prod.api.market/api/v1/byteplus/seedance-text-to-video-1-5-pro')));
         $key = config('services.magicapi.key', env('API_MARKET_KEY'));
 
         if (empty($url) || empty($key)) {
             return [
-                'name' => 'Text-to-Video API (Hunyuan)',
+                'name' => 'Text-to-Video API (Seedance 1.5 Pro)',
                 'category' => 'AI Provider',
                 'status' => 'unconfigured',
                 'status_label' => 'Unconfigured',
                 'latency_ms' => 0,
-                'details' => 'MAGICAPI_VIDEO_BASE_URL missing',
+                'details' => 'SEEDANCE_VIDEO_BASE_URL missing',
                 'error' => null,
             ];
         }
 
         $start = microtime(true);
         try {
-            $response = Http::withHeaders(['x-api-market-key' => $key])->timeout(6)->get($url);
+            $response = Http::withHeaders([
+                'x-api-market-key' => $key,
+            ])->timeout(6)->get($url);
+
             $latency = round((microtime(true) - $start) * 1000, 2);
             $isReachable = $response->status() < 500;
 
             return [
-                'name' => 'Text-to-Video API (Hunyuan)',
+                'name' => 'Text-to-Video API (Seedance 1.5 Pro)',
                 'category' => 'AI Provider',
                 'status' => $isReachable ? 'connected' : 'failed',
                 'status_label' => $isReachable ? 'Connected' : 'Error',
                 'latency_ms' => $latency,
-                'details' => 'Hunyuan Video endpoint online',
+                'details' => 'Seedance 1.5 Pro endpoint online',
                 'error' => null,
             ];
         } catch (Exception $e) {
             $latency = round((microtime(true) - $start) * 1000, 2);
+
             return [
-                'name' => 'Text-to-Video API (Hunyuan)',
+                'name' => 'Text-to-Video API (Seedance 1.5 Pro)',
                 'category' => 'AI Provider',
                 'status' => 'failed',
                 'status_label' => 'Unreachable',

@@ -297,7 +297,7 @@
                                 {{ $vid->prompt }}
                             </div>
                             <div style="display: flex; align-items: center; justify-content: space-between; font-size: 0.72rem; color: #64748b;">
-                                <span>{{ $vid->generation_type === 'image-to-video' ? 'Wan 2.2' : 'Hunyuan' }}</span>
+                                <span>{{ $vid->generation_type === 'image-to-video' ? 'Wan 2.2' : 'Seedance 1.5 Pro' }}</span>
                                 <span>{{ $vid->created_at ? $vid->created_at->format('M d') : '' }}</span>
                             </div>
                         </div>

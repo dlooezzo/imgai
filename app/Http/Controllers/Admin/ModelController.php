@@ -29,12 +29,12 @@ class ModelController extends Controller
                 'is_configured' => !empty(SiteSetting::get('api_market_key', config('services.magicapi.key', env('API_MARKET_KEY')))),
             ],
             'video' => [
-                'name' => SiteSetting::get('ai_model_video_name', 'Tencent Hunyuan-Video (Text-to-Video)'),
+                'name' => SiteSetting::get('ai_model_video_name', 'Seedance 1.5 Pro (Text-to-Video Audio)'),
                 'key' => 'video',
                 'category' => 'Video Generation',
-                'base_url' => SiteSetting::get('ai_model_video_url', config('services.magicapi.video_base_url', env('MAGICAPI_VIDEO_BASE_URL', 'https://prod.api.market/api/v1/magicapi/hunyuan-video'))),
-                'version' => SiteSetting::get('ai_model_video_version', config('services.magicapi.video_version', env('MAGICAPI_VIDEO_VERSION', '6c9132aee14409cd6568d030453f1ba50f5f3412b844fe67f78a9eb62d55664f'))),
-                'output_format' => 'MP4 (720p / 480p, 24 FPS)',
+                'base_url' => SiteSetting::get('ai_model_video_url', config('services.magicapi.seedance_video_base_url', env('SEEDANCE_VIDEO_BASE_URL', 'https://prod.api.market/api/v1/byteplus/seedance-text-to-video-1-5-pro'))),
+                'version' => SiteSetting::get('ai_model_video_version', 'text-to-video-1-5-pro'),
+                'output_format' => 'MP4 (480p / 720p / 1080p, up to 12s, optional audio)',
                 'is_configured' => !empty(SiteSetting::get('api_market_key', config('services.magicapi.key', env('API_MARKET_KEY')))),
             ],
             'image_to_video' => [
@@ -94,6 +94,7 @@ class ModelController extends Controller
             $url = rtrim(trim($validated['ai_model_video_url']), '/');
             SiteSetting::set('ai_model_video_url', $url);
             config(['services.magicapi.video_base_url' => $url]);
+            config(['services.magicapi.seedance_video_base_url' => $url]);
         }
         if (isset($validated['ai_model_video_version'])) {
             $ver = trim($validated['ai_model_video_version']);
@@ -143,7 +144,7 @@ class ModelController extends Controller
 
         $urlMap = [
             'image' => SiteSetting::get('ai_model_image_url', config('services.magicapi.base_url', env('MAGICAPI_BASE_URL', 'https://prod.api.market/api/v1/magicapi/cinematic-text-to-image-generator'))),
-            'video' => SiteSetting::get('ai_model_video_url', config('services.magicapi.video_base_url', env('MAGICAPI_VIDEO_BASE_URL', 'https://prod.api.market/api/v1/magicapi/hunyuan-video'))),
+            'video' => SiteSetting::get('ai_model_video_url', config('services.magicapi.seedance_video_base_url', env('SEEDANCE_VIDEO_BASE_URL', 'https://prod.api.market/api/v1/byteplus/seedance-text-to-video-1-5-pro'))),
             'image_to_video' => SiteSetting::get('ai_model_i2v_url', config('services.magicapi.image_to_video_base_url', env('MAGICAPI_IMAGE_TO_VIDEO_BASE_URL', 'https://prod.api.market/api/v1/magicapi/ultra-fast-text-to-image-image-to-video-api'))),
         ];
 

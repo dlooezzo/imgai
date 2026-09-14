@@ -71,7 +71,7 @@
             <div class="stat-content">
                 <span class="stat-label">Stored Videos</span>
                 <span class="stat-value">{{ number_format($r2VideoCount) }}</span>
-                <span class="stat-hint">Hunyuan & Wan 2.2 MP4s</span>
+                <span class="stat-hint">Seedance 1.5 & Wan 2.2 MP4s</span>
             </div>
             <div class="stat-icon-wrapper" style="color: #c084fc; background: rgba(139, 92, 246, 0.12); border-color: rgba(139, 92, 246, 0.25);">
                 <i data-lucide="film"></i>
