@@ -167,6 +167,40 @@ class ImageToVideoTest extends TestCase
         });
     }
 
+    public function test_image_to_video_accepts_true_boolean_options(): void
+    {
+        $user = User::factory()->create(['credit_balance' => 100]);
+        $this->withSession(['supabase_user_id' => $user->id]);
+
+        Storage::fake('r2');
+        Queue::fake();
+
+        $baseUrl = config('services.magicapi.seedance_image_to_video_base_url');
+        Http::fake([
+            "{$baseUrl}/image-to-video-pro-fast/run" => Http::response([
+                'id' => 'pred_test_true_options',
+                'status' => 'submitted',
+            ], 201),
+            'https://pub-test.r2.dev/*' => Http::response([], 200),
+        ]);
+
+        $jpegBytes = base64_decode('/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAP//////////////////////////////////////////////////////////////////////////////////////wgALCAABAAEBAREA/8QAFBABAAAAAAAAAAAAAAAAAAAAAP/aAAgBAQABPxA=');
+        $imageFile = UploadedFile::fake()->createWithContent('nature.jpg', $jpegBytes, 'image/jpeg');
+        $response = $this->postJson(route('tools.image-to-video.generate'), [
+            'image' => $imageFile,
+            'prompt' => 'Slow natural camera movement',
+            'watermark' => true,
+            'camerafixed' => true,
+        ]);
+
+        $response->assertStatus(201);
+        $this->assertDatabaseHas('video_generations', [
+            'prediction_id' => 'pred_test_true_options',
+            'watermark' => 1,
+            'camerafixed' => 1,
+        ]);
+    }
+
     // =========================================================================
     // Status Endpoint Tests
     // =========================================================================

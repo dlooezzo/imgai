@@ -1925,9 +1925,9 @@ function imageToVideoApp(config = {}) {
             formData.append('ratio', this.ratio);
             formData.append('resolution', this.resolution);
             formData.append('duration', this.duration);
-            formData.append('watermark', this.watermark);
+            formData.append('watermark', this.watermark ? '1' : '0');
             formData.append('seed', this.seed);
-            formData.append('camerafixed', this.camerafixed);
+            formData.append('camerafixed', this.camerafixed ? '1' : '0');
 
             const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
 
