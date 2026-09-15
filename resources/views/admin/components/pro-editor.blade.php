@@ -796,6 +796,7 @@ window.proContentEditor = function(config) {
         modalImageCaption: '',
         modalUploading: false,
         modalError: '',
+        savedVisualRange: null,
 
         init() {
             this.$nextTick(() => {
@@ -1061,6 +1062,7 @@ window.proContentEditor = function(config) {
 
         // Image Modal Actions
         openImageModal() {
+            this.saveVisualSelection();
             this.modalFile = null;
             this.modalImagePreview = '';
             this.modalImageAlt = '';
@@ -1071,6 +1073,57 @@ window.proContentEditor = function(config) {
             this.$nextTick(() => {
                 if (window.lucide) window.lucide.createIcons();
             });
+        },
+
+        saveVisualSelection() {
+            this.savedVisualRange = null;
+            if (this.mode !== 'visual' || !this.$refs.visualEditor) return;
+
+            const selection = window.getSelection();
+            if (!selection || selection.rangeCount === 0) return;
+
+            const range = selection.getRangeAt(0);
+            const container = range.commonAncestorContainer.nodeType === Node.ELEMENT_NODE
+                ? range.commonAncestorContainer
+                : range.commonAncestorContainer.parentElement;
+
+            if (container && this.$refs.visualEditor.contains(container)) {
+                this.savedVisualRange = range.cloneRange();
+            }
+        },
+
+        insertImageIntoVisual(html) {
+            const editor = this.$refs.visualEditor;
+            if (!editor) return false;
+
+            const range = this.savedVisualRange && editor.contains(this.savedVisualRange.commonAncestorContainer)
+                ? this.savedVisualRange.cloneRange()
+                : document.createRange();
+
+            if (!this.savedVisualRange || !editor.contains(range.commonAncestorContainer)) {
+                range.selectNodeContents(editor);
+                range.collapse(false);
+            }
+
+            const fragment = range.createContextualFragment(html);
+            const lastNode = fragment.lastChild;
+            range.deleteContents();
+            range.insertNode(fragment);
+
+            const nextSelection = document.createRange();
+            if (lastNode && editor.contains(lastNode)) {
+                nextSelection.setStartAfter(lastNode);
+            } else {
+                nextSelection.selectNodeContents(editor);
+                nextSelection.collapse(false);
+            }
+            nextSelection.collapse(true);
+            const selection = window.getSelection();
+            selection.removeAllRanges();
+            selection.addRange(nextSelection);
+            this.savedVisualRange = nextSelection.cloneRange();
+
+            return true;
         },
 
         handleModalFileSelect(e) {
@@ -1125,6 +1178,11 @@ window.proContentEditor = function(config) {
                 const data = await response.json();
 
                 if (data.success && data.url) {
+                    if (!/^https:\/\//i.test(data.url)) {
+                        this.modalError = 'Image uploaded, but the returned URL is not a public HTTPS URL.';
+                        return;
+                    }
+
                     const altEscaped = this.escapeHtml(this.modalImageAlt.trim());
                     const capEscaped = this.escapeHtml(this.modalImageCaption.trim());
                     
@@ -1135,17 +1193,17 @@ window.proContentEditor = function(config) {
                     figureHtml += `</figure><p></p>`;
 
                     if (this.mode === 'visual') {
-                        const tempDiv = document.createElement('div');
-                        tempDiv.innerHTML = figureHtml;
-                        while (tempDiv.firstChild) {
-                            this.insertNodeAtCursor(tempDiv.firstChild);
+                        if (!this.insertImageIntoVisual(figureHtml)) {
+                            this.modalError = 'Image uploaded successfully, but could not be inserted into the editor.';
+                            return;
                         }
+                        this.syncContentFromVisual();
                     } else {
                         this.insertHtmlText(figureHtml + '\n');
+                        this.content = this.getSourceValue();
                     }
 
-                    if (this.mode === 'visual') this.syncContentFromVisual();
-                    else this.setSourceValue(this.getSourceValue());
+                    console.debug('CMS editor image inserted', { mode: this.mode, hasCaption: Boolean(capEscaped) });
                     this.showImageModal = false;
                 } else {
                     this.modalError = data.message || 'Image upload to Cloudflare R2 failed.';
