@@ -354,6 +354,37 @@ class ImageToVideoTest extends TestCase
         $this->assertEquals('processing', $generation->fresh()->status);
     }
 
+    public function test_poll_job_maps_seedance_in_progress_status_to_processing(): void
+    {
+        Queue::fake();
+        Storage::fake('r2');
+
+        $generation = VideoGeneration::create([
+            'user_id' => 'user_in_progress',
+            'generation_type' => 'image-to-video',
+            'prediction_id' => 'pred_in_progress',
+            'prompt' => 'Slow camera movement',
+            'ratio' => '16:9',
+            'resolution' => '480p',
+            'status' => 'starting',
+            'job_dispatched' => true,
+        ]);
+
+        $baseUrl = config('services.magicapi.seedance_image_to_video_base_url');
+        Http::fake([
+            "{$baseUrl}/image-to-video-pro-fast/status/pred_in_progress" => Http::response([
+                'id' => 'pred_in_progress',
+                'status' => 'IN_PROGRESS',
+            ], 200),
+        ]);
+
+        (new PollImageToVideoPredictionJob($generation->id, attemptNumber: 1))
+            ->handle(app(SeedanceImageToVideoService::class), app(R2StorageService::class));
+
+        Queue::assertPushed(PollImageToVideoPredictionJob::class);
+        $this->assertSame('processing', $generation->fresh()->status);
+    }
+
     public function test_poll_job_preserves_provider_error_and_marks_generation_failed(): void
     {
         Queue::fake();

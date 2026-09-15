@@ -219,6 +219,10 @@ class SeedanceImageToVideoService implements ImageToVideoServiceInterface
             }
 
             $status = strtolower(trim((string) ($data['status'] ?? '')));
+            if ($status === 'in_progress') {
+                $status = 'processing';
+            }
+
             if (! in_array($status, ['submitted', 'processing', 'succeeded', 'failed'], true)) {
                 throw new Exception('Seedance API returned an unsupported status: '.($data['status'] ?? 'missing'));
             }
