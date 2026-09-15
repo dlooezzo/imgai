@@ -317,6 +317,46 @@ class ImageToVideoTest extends TestCase
         Queue::assertNotPushed(PollImageToVideoPredictionJob::class);
     }
 
+    public function test_poll_job_maps_completed_status_to_success_and_uploads_video_to_r2(): void
+    {
+        Storage::fake('r2');
+        Queue::fake();
+
+        $generation = VideoGeneration::create([
+            'user_id' => 'user_completed',
+            'generation_type' => 'image-to-video',
+            'prediction_id' => 'pred_completed',
+            'prompt' => 'A slow cinematic camera track',
+            'ratio' => '16:9',
+            'resolution' => '480p',
+            'status' => 'processing',
+            'job_dispatched' => true,
+        ]);
+
+        $baseUrl = config('services.magicapi.seedance_image_to_video_base_url');
+        Http::fake([
+            "{$baseUrl}/image-to-video-pro-fast/status/pred_completed" => Http::response([
+                'id' => 'pred_completed',
+                'status' => 'COMPLETED',
+                'output' => ['video_url' => 'https://mock-provider-cdn.com/videos/completed.mp4'],
+            ], 200),
+            'https://mock-provider-cdn.com/videos/completed.mp4' => Http::response(
+                'MOCK_COMPLETED_MP4_VIDEO', 200, ['Content-Type' => 'video/mp4']
+            ),
+        ]);
+
+        (new PollImageToVideoPredictionJob($generation->id, attemptNumber: 15))
+            ->handle(app(SeedanceImageToVideoService::class), app(R2StorageService::class));
+
+        $generation->refresh();
+        $this->assertSame('succeeded', $generation->status);
+        $this->assertNotNull($generation->video_path);
+        $this->assertStringContainsString('https://pub-test.r2.dev/', $generation->video_url);
+        $this->assertFalse((bool) $generation->job_dispatched);
+        Storage::disk('r2')->assertExists($generation->video_path);
+        Queue::assertNotPushed(PollImageToVideoPredictionJob::class);
+    }
+
     public function test_poll_job_re_dispatches_when_still_processing(): void
     {
         Queue::fake();

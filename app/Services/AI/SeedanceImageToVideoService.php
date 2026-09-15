@@ -221,6 +221,8 @@ class SeedanceImageToVideoService implements ImageToVideoServiceInterface
             $status = strtolower(trim((string) ($data['status'] ?? '')));
             if ($status === 'in_progress') {
                 $status = 'processing';
+            } elseif ($status === 'completed') {
+                $status = 'succeeded';
             }
 
             if (! in_array($status, ['submitted', 'processing', 'succeeded', 'failed'], true)) {
