@@ -3,8 +3,9 @@
 namespace Tests\Feature;
 
 use App\Jobs\PollImageToVideoPredictionJob;
+use App\Models\User;
 use App\Models\VideoGeneration;
-use App\Services\AI\WanImageToVideoService;
+use App\Services\AI\SeedanceImageToVideoService;
 use App\Services\Storage\R2StorageService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
@@ -28,8 +29,8 @@ class ImageToVideoTest extends TestCase
             'filesystems.disks.r2.endpoint'                       => 'https://test.r2.cloudflarestorage.com',
             'filesystems.disks.r2.url'                            => 'https://pub-test.r2.dev',
             'services.magicapi.key'                               => 'test-api-market-key',
-            'services.magicapi.image_to_video_base_url'           => 'https://prod.api.market/api/v1/magicapi/ultra-fast-text-to-image-image-to-video-api',
-            'services.magicapi.image_to_video_version'            => 'c92ab4265c9b3b5ea9ac9a87df839ebfd662ee3a820d62c21305bf6501a73fe1',
+            'services.magicapi.seedance_image_to_video_base_url'  => 'https://prod.api.market/api/v1/byteplus/seedance-image-to-video-pro-fast',
+            'services.magicapi.image_to_video_version'            => 'image-to-video-pro-fast',
         ]);
     }
 
@@ -42,8 +43,10 @@ class ImageToVideoTest extends TestCase
         $response = $this->get(route('tools.image-to-video.index'));
         $response->assertStatus(200);
         $response->assertSee('Image to Video Generator');
-        $response->assertSee('Wan 2.2 I2V');
-        $response->assertSee('Cloudflare R2 Storage');
+        $response->assertSee('Duration');
+        $response->assertSee('Watermark');
+        $response->assertSee('Seed');
+        $response->assertSee('Fixed Camera');
         $response->assertSee('i2v-neural-canvas');
     }
 
@@ -87,49 +90,59 @@ class ImageToVideoTest extends TestCase
 
     public function test_image_to_video_generation_creation_flow(): void
     {
-        $this->withSession(['supabase_user_id' => 'test-user-123']);
+        // Create a user with enough credits
+        $user = User::factory()->create([
+            'credit_balance' => 100,
+        ]);
+        $this->withSession(['supabase_user_id' => $user->id]);
 
         Storage::fake('r2');
         Queue::fake();
 
-        $baseUrl = config('services.magicapi.image_to_video_base_url');
+        $baseUrl = config('services.magicapi.seedance_image_to_video_base_url');
 
         Http::fake([
-            "{$baseUrl}/predictions" => Http::response([
+            "{$baseUrl}/image-to-video-pro-fast/run" => Http::response([
                 'id'         => 'pred_test_12345',
-                'version'    => 'c92ab4265c9b3b5ea9ac9a87df839ebfd662ee3a820d62c21305bf6501a73fe1',
-                'status'     => 'starting',
+                'version'    => 'image-to-video-pro-fast',
+                'status'     => 'submitted',
                 'created_at' => now()->toIso8601String(),
             ], 201),
+            'https://pub-test.r2.dev/*' => Http::response([], 200),
         ]);
 
         $jpegBytes = base64_decode('/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAP//////////////////////////////////////////////////////////////////////////////////////wgALCAABAAEBAREA/8QAFBABAAAAAAAAAAAAAAAAAAAAAP/aAAgBAQABPxA=');
         $imageFile = UploadedFile::fake()->createWithContent('nature.jpg', $jpegBytes, 'image/jpeg');
 
         $response = $this->postJson(route('tools.image-to-video.generate'), [
-            'image'             => $imageFile,
-            'prompt'            => 'Camera glides over a glowing forest with floating fireflies in 4k',
-            'aspect_ratio'      => '16:9',
-            'resolution'        => '720p',
-            'num_frames'        => 81,
-            'frames_per_second' => 24,
+            'image'       => $imageFile,
+            'prompt'      => 'Camera glides over a glowing forest with floating fireflies in 4k',
+            'ratio'       => '16:9',
+            'resolution'  => '720p',
+            'duration'    => 5,
+            'watermark'   => false,
+            'seed'        => -1,
+            'camerafixed' => false,
         ]);
 
         $response->assertStatus(201);
         $response->assertJsonPath('success', true);
         $response->assertJsonPath('prediction_id', 'pred_test_12345');
         $response->assertJsonPath('generation.generation_type', 'image-to-video');
-        $response->assertJsonPath('generation.status', 'starting');
+        $response->assertJsonPath('generation.status', 'submitted');
 
         // Generation exists in DB with correct values
         $this->assertDatabaseHas('video_generations', [
             'prediction_id'   => 'pred_test_12345',
             'generation_type' => 'image-to-video',
             'resolution'      => '720p',
-            'aspect_ratio'    => '16:9',
-            'num_frames'      => 81,
-            'frame_rate'      => 24,
-            'status'          => 'starting',
+            'ratio'           => '16:9',
+            'duration'        => 5,
+            'watermark'       => 0,
+            'seed'            => -1,
+            'camerafixed'     => 0,
+            'credits_charged' => 5,
+            'status'          => 'submitted',
             'job_dispatched'  => 1, // true — job was dispatched after prediction created
         ]);
 
@@ -140,6 +153,18 @@ class ImageToVideoTest extends TestCase
 
         // Polling job was dispatched
         Queue::assertPushed(PollImageToVideoPredictionJob::class, fn($job) => $job->generationId === $generation->id);
+
+        Http::assertSent(function ($request) use ($baseUrl) {
+            if ($request->url() !== "{$baseUrl}/image-to-video-pro-fast/run") {
+                return false;
+            }
+
+            return array_keys($request['input']) === [
+                'prompt', 'image_url', 'resolution', 'ratio', 'duration', 'watermark', 'seed', 'camerafixed',
+            ] && ! array_intersect([
+                'num_frames', 'frames_per_second', 'fps', 'video_frames', 'width', 'height', 'frames',
+            ], array_keys($request['input']));
+        });
     }
 
     // =========================================================================
@@ -153,7 +178,7 @@ class ImageToVideoTest extends TestCase
             'generation_type' => 'image-to-video',
             'prediction_id'   => 'pred_status_check',
             'prompt'          => 'Hypercar on highway',
-            'aspect_ratio'    => '16:9',
+            'ratio'           => '16:9',
             'resolution'      => '720p',
             'status'          => 'processing',
             'job_dispatched'  => true, // already dispatched — no self-heal needed
@@ -181,7 +206,7 @@ class ImageToVideoTest extends TestCase
             'generation_type' => 'image-to-video',
             'prediction_id'   => 'pred_orphaned',
             'prompt'          => 'Orphaned generation',
-            'aspect_ratio'    => '16:9',
+            'ratio'           => '16:9',
             'resolution'      => '720p',
             'status'          => 'processing',
             'job_dispatched'  => false, // Orphaned — job was lost (e.g. worker restart)
@@ -221,19 +246,19 @@ class ImageToVideoTest extends TestCase
             'generation_type' => 'image-to-video',
             'prediction_id'   => 'pred_full_flow',
             'prompt'          => 'A boat sailing through waves at golden hour',
-            'aspect_ratio'    => '16:9',
+            'ratio'           => '16:9',
             'resolution'      => '720p',
             'status'          => 'starting',
             'job_dispatched'  => true,
         ]);
 
-        $baseUrl = config('services.magicapi.image_to_video_base_url');
+        $baseUrl = config('services.magicapi.seedance_image_to_video_base_url');
 
         Http::fake([
-            "{$baseUrl}/predictions/pred_full_flow" => Http::response([
+            "{$baseUrl}/image-to-video-pro-fast/status/pred_full_flow" => Http::response([
                 'id'     => 'pred_full_flow',
                 'status' => 'succeeded',
-                'output' => 'https://mock-provider-cdn.com/videos/output_123.mp4',
+                'output' => ['video_url' => 'https://mock-provider-cdn.com/videos/output_123.mp4'],
             ], 200),
             'https://mock-provider-cdn.com/videos/output_123.mp4' => Http::response(
                 'MOCK_MP4_VIDEO_BINARY_STREAM_DATA', 200, ['Content-Type' => 'video/mp4']
@@ -242,7 +267,7 @@ class ImageToVideoTest extends TestCase
 
         // Run a single poll iteration — it should detect succeeded and finish
         $job = new PollImageToVideoPredictionJob($generation->id, attemptNumber: 1);
-        $job->handle(app(WanImageToVideoService::class), app(R2StorageService::class));
+        $job->handle(app(SeedanceImageToVideoService::class), app(R2StorageService::class));
 
         $generation->refresh();
 
@@ -268,23 +293,23 @@ class ImageToVideoTest extends TestCase
             'generation_type' => 'image-to-video',
             'prediction_id'   => 'pred_still_running',
             'prompt'          => 'Still processing video',
-            'aspect_ratio'    => '16:9',
+            'ratio'           => '16:9',
             'resolution'      => '720p',
             'status'          => 'starting',
             'job_dispatched'  => true,
         ]);
 
-        $baseUrl = config('services.magicapi.image_to_video_base_url');
+        $baseUrl = config('services.magicapi.seedance_image_to_video_base_url');
 
         Http::fake([
-            "{$baseUrl}/predictions/pred_still_running" => Http::response([
+            "{$baseUrl}/image-to-video-pro-fast/status/pred_still_running" => Http::response([
                 'id'     => 'pred_still_running',
                 'status' => 'processing',
             ], 200),
         ]);
 
         $job = new PollImageToVideoPredictionJob($generation->id, attemptNumber: 1);
-        $job->handle(app(WanImageToVideoService::class), app(R2StorageService::class));
+        $job->handle(app(SeedanceImageToVideoService::class), app(R2StorageService::class));
 
         // Should re-dispatch itself for the next poll
         Queue::assertPushed(PollImageToVideoPredictionJob::class, function ($job) use ($generation) {
@@ -295,7 +320,7 @@ class ImageToVideoTest extends TestCase
         $this->assertEquals('processing', $generation->fresh()->status);
     }
 
-    public function test_poll_job_handles_transient_error_and_re_dispatches(): void
+    public function test_poll_job_preserves_provider_error_and_marks_generation_failed(): void
     {
         Queue::fake();
         Storage::fake('r2');
@@ -305,26 +330,25 @@ class ImageToVideoTest extends TestCase
             'generation_type' => 'image-to-video',
             'prediction_id'   => 'pred_resilience',
             'prompt'          => 'Drone flying through misty mountains',
-            'aspect_ratio'    => '16:9',
+            'ratio'           => '16:9',
             'resolution'      => '720p',
             'status'          => 'starting',
             'job_dispatched'  => true,
         ]);
 
-        $baseUrl = config('services.magicapi.image_to_video_base_url');
+        $baseUrl = config('services.magicapi.seedance_image_to_video_base_url');
 
         // Simulate a 404 transient error on first poll
         Http::fake([
-            "{$baseUrl}/predictions/pred_resilience" => Http::response(['message' => 'Not found yet'], 404),
+            "{$baseUrl}/image-to-video-pro-fast/status/pred_resilience" => Http::response(['message' => 'Not found yet'], 404),
         ]);
 
         $job = new PollImageToVideoPredictionJob($generation->id, attemptNumber: 3);
-        $job->handle(app(WanImageToVideoService::class), app(R2StorageService::class));
+        $job->handle(app(SeedanceImageToVideoService::class), app(R2StorageService::class));
 
-        // Despite the error, it should re-dispatch for the next attempt
-        Queue::assertPushed(PollImageToVideoPredictionJob::class, function ($job) use ($generation) {
-            return $job->generationId === $generation->id && $job->attemptNumber === 4;
-        });
+        Queue::assertNothingPushed();
+        $this->assertSame('failed', $generation->fresh()->status);
+        $this->assertStringContainsString('Not found yet', $generation->fresh()->error_message);
     }
 
     public function test_poll_job_marks_failed_after_max_attempts(): void
@@ -343,7 +367,7 @@ class ImageToVideoTest extends TestCase
 
         // Attempt 201 (over MAX_ATTEMPTS = 200): should mark failed and stop
         $job = new PollImageToVideoPredictionJob($generation->id, attemptNumber: 201);
-        $job->handle(app(WanImageToVideoService::class), app(R2StorageService::class));
+        $job->handle(app(SeedanceImageToVideoService::class), app(R2StorageService::class));
 
         $this->assertEquals('failed', $generation->fresh()->status);
         Queue::assertNotPushed(PollImageToVideoPredictionJob::class);
@@ -371,7 +395,7 @@ class ImageToVideoTest extends TestCase
         ]);
 
         $job = new PollImageToVideoPredictionJob($generation->id, attemptNumber: 1);
-        $job->handle(app(WanImageToVideoService::class), app(R2StorageService::class));
+        $job->handle(app(SeedanceImageToVideoService::class), app(R2StorageService::class));
 
         // Should exit immediately — no re-dispatch, still cancelled
         Queue::assertNotPushed(PollImageToVideoPredictionJob::class);

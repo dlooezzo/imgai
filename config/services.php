@@ -42,10 +42,13 @@ return [
         // Text-to-Video Audio (Seedance 1.5 Pro)
         'video_base_url' => env('SEEDANCE_VIDEO_BASE_URL', 'https://prod.api.market/api/v1/byteplus/seedance-text-to-video-1-5-pro'),
         'video_version' => env('SEEDANCE_VIDEO_VERSION', 'text-to-video-1-5-pro'),
-        'image_to_video_base_url' => env('MAGICAPI_IMAGE_TO_VIDEO_BASE_URL', 'https://prod.api.market/api/v1/magicapi/ultra-fast-text-to-image-image-to-video-api'),
-        'image_to_video_version' => env('MAGICAPI_IMAGE_TO_VIDEO_VERSION', 'c92ab4265c9b3b5ea9ac9a87df839ebfd662ee3a820d62c21305bf6501a73fe1'),
+        // Image-to-Video (BytePlus Seedance 1.0 Pro Fast)
+        'image_to_video_base_url' => env('SEEDANCE_IMAGE_TO_VIDEO_BASE_URL', 'https://prod.api.market/api/v1/byteplus/seedance-image-to-video-pro-fast'),
+        'image_to_video_version' => env('SEEDANCE_IMAGE_TO_VIDEO_VERSION', 'image-to-video-pro-fast'),
         // Seedance 1.5 Pro — Text-to-Video Audio
         'seedance_video_base_url' => env('SEEDANCE_VIDEO_BASE_URL', 'https://prod.api.market/api/v1/byteplus/seedance-text-to-video-1-5-pro'),
+        // BytePlus Seedance 1.0 Pro Fast — Image-to-Video
+        'seedance_image_to_video_base_url' => env('SEEDANCE_IMAGE_TO_VIDEO_BASE_URL', 'https://prod.api.market/api/v1/byteplus/seedance-image-to-video-pro-fast'),
     ],
 
     'supabase' => [

@@ -111,22 +111,41 @@
         <div class="control-row">
             <div class="form-section-title">
                 <span>3. Aspect Ratio</span>
-                <span class="badge-val" x-text="aspectRatio"></span>
+                <span class="badge-val" x-text="ratio"></span>
             </div>
 
-            <div class="ratio-grid" style="grid-template-columns: repeat(2, 1fr);">
-                <!-- 16:9 Landscape / Cinema -->
-                <button type="button" class="ratio-btn" :class="{ 'active': aspectRatio === '16:9' }" @click="!isGenerating && (aspectRatio = '16:9')" :disabled="isGenerating">
+            <div class="ratio-grid" style="grid-template-columns: repeat(4, 1fr); gap: 8px;">
+                <button type="button" class="ratio-btn" :class="{ 'active': ratio === '16:9' }" @click="!isGenerating && (ratio = '16:9')" :disabled="isGenerating" title="Cinema">
                     <div class="ratio-visual-box" style="width: 28px; height: 16px;"></div>
                     <span class="ratio-label">16:9</span>
-                    <span class="ratio-desc">Cinema</span>
                 </button>
-
-                <!-- 9:16 Portrait / Story -->
-                <button type="button" class="ratio-btn" :class="{ 'active': aspectRatio === '9:16' }" @click="!isGenerating && (aspectRatio = '9:16')" :disabled="isGenerating">
+                <button type="button" class="ratio-btn" :class="{ 'active': ratio === '9:16' }" @click="!isGenerating && (ratio = '9:16')" :disabled="isGenerating" title="Reels / Shorts">
                     <div class="ratio-visual-box" style="width: 16px; height: 28px;"></div>
                     <span class="ratio-label">9:16</span>
-                    <span class="ratio-desc">Reels / Shorts</span>
+                </button>
+                <button type="button" class="ratio-btn" :class="{ 'active': ratio === '4:3' }" @click="!isGenerating && (ratio = '4:3')" :disabled="isGenerating" title="Classic">
+                    <div class="ratio-visual-box" style="width: 24px; height: 18px;"></div>
+                    <span class="ratio-label">4:3</span>
+                </button>
+                <button type="button" class="ratio-btn" :class="{ 'active': ratio === '1:1' }" @click="!isGenerating && (ratio = '1:1')" :disabled="isGenerating" title="Square">
+                    <div class="ratio-visual-box" style="width: 20px; height: 20px;"></div>
+                    <span class="ratio-label">1:1</span>
+                </button>
+                <button type="button" class="ratio-btn" :class="{ 'active': ratio === '21:9' }" @click="!isGenerating && (ratio = '21:9')" :disabled="isGenerating" title="Ultrawide">
+                    <div class="ratio-visual-box" style="width: 28px; height: 12px;"></div>
+                    <span class="ratio-label">21:9</span>
+                </button>
+                <button type="button" class="ratio-btn" :class="{ 'active': ratio === '9:21' }" @click="!isGenerating && (ratio = '9:21')" :disabled="isGenerating" title="Tall">
+                    <div class="ratio-visual-box" style="width: 12px; height: 28px;"></div>
+                    <span class="ratio-label">9:21</span>
+                </button>
+                <button type="button" class="ratio-btn" :class="{ 'active': ratio === '3:4' }" @click="!isGenerating && (ratio = '3:4')" :disabled="isGenerating" title="Portrait">
+                    <div class="ratio-visual-box" style="width: 18px; height: 24px;"></div>
+                    <span class="ratio-label">3:4</span>
+                </button>
+                <button type="button" class="ratio-btn" :class="{ 'active': ratio === 'adaptive' }" @click="!isGenerating && (ratio = 'adaptive')" :disabled="isGenerating" title="Adaptive">
+                    <div class="ratio-visual-box" style="width: 20px; height: 20px; background: linear-gradient(45deg, var(--brand-cyan), var(--brand-purple));"></div>
+                    <span class="ratio-label">Auto</span>
                 </button>
             </div>
         </div>
@@ -138,61 +157,82 @@
                 <span class="badge-val" x-text="resolution.toUpperCase()"></span>
             </div>
 
-            <div class="segmented-group">
-                <button type="button" class="segmented-btn" :class="{ 'active': resolution === '720p' }" @click="!isGenerating && (resolution = '720p')" :disabled="isGenerating">720p (High Definition)</button>
-                <button type="button" class="segmented-btn" :class="{ 'active': resolution === '480p' }" @click="!isGenerating && (resolution = '480p')" :disabled="isGenerating">480p (Standard Definition)</button>
+            <div class="segmented-group" style="grid-template-columns: repeat(3, 1fr);">
+                <button type="button" class="segmented-btn" :class="{ 'active': resolution === '480p' }" @click="!isGenerating && (resolution = '480p')" :disabled="isGenerating">480p</button>
+                <button type="button" class="segmented-btn" :class="{ 'active': resolution === '720p' }" @click="!isGenerating && (resolution = '720p')" :disabled="isGenerating">720p</button>
+                <button type="button" class="segmented-btn" :class="{ 'active': resolution === '1080p' }" @click="!isGenerating && (resolution = '1080p')" :disabled="isGenerating">1080p</button>
             </div>
         </div>
 
-        <!-- 5. Advanced Motion Controls Accordion -->
+        <!-- 5. Advanced Settings Accordion -->
         <div class="accordion">
             <button type="button" class="accordion-header" @click="advancedOpen = !advancedOpen">
                 <div style="display: flex; align-items: center; gap: 8px;">
                     <i data-lucide="sliders" style="width: 16px; height: 16px;"></i>
-                    <span>Advanced Motion Settings</span>
+                    <span>Advanced Settings</span>
                 </div>
                 <i data-lucide="chevron-down" style="width: 16px; height: 16px; transition: transform 0.2s;" :style="advancedOpen ? 'transform: rotate(180deg)' : ''"></i>
             </button>
 
             <div class="accordion-body" x-show="advancedOpen" x-transition>
-                <!-- Number of Frames -->
+                <!-- Duration -->
                 <div class="control-row">
                     <div class="control-label-wrap">
-                        <span>Video Frames</span>
-                        <span class="badge-val" x-text="numFrames + ' Frames (' + (numFrames / framesPerSecond).toFixed(1) + 's)'"></span>
+                        <span>Duration</span>
+                        <span class="badge-val" x-text="duration + 's'"></span>
                     </div>
-                    <div class="segmented-group">
-                        <button type="button" class="segmented-btn" :class="{ 'active': numFrames === 41 }" @click="!isGenerating && (numFrames = 41)" :disabled="isGenerating">41 (~1.7s)</button>
-                        <button type="button" class="segmented-btn" :class="{ 'active': numFrames === 81 }" @click="!isGenerating && (numFrames = 81)" :disabled="isGenerating">81 (~3.4s)</button>
-                        <button type="button" class="segmented-btn" :class="{ 'active': numFrames === 121 }" @click="!isGenerating && (numFrames = 121)" :disabled="isGenerating">121 (~5.0s)</button>
-                    </div>
-                    <!-- Manual custom frames input for testing -->
-                    <div style="display: flex; align-items: center; gap: 8px; margin-top: 8px;">
-                        <span style="font-size: 0.78rem; color: var(--text-muted); white-space: nowrap;">Custom:</span>
-                        <input
-                            type="number"
-                            class="text-input"
-                            x-model.number="numFrames"
-                            min="1"
-                            max="500"
-                            step="1"
-                            :disabled="isGenerating"
-                            style="width: 90px; padding: 5px 10px; font-size: 0.84rem; border-radius: 8px; background: rgba(15,20,34,0.8); border: 1px solid rgba(255,255,255,0.12); color: #f8fafc; outline: none;"
-                            placeholder="e.g. 240"
-                        >
-                        <span style="font-size: 0.74rem; color: var(--text-muted);" x-text="'= ' + (numFrames / framesPerSecond).toFixed(1) + 's'"></span>
+                    <div class="segmented-group" style="grid-template-columns: repeat(5, 1fr); gap: 6px;">
+                        <button type="button" class="segmented-btn" :class="{ 'active': duration === 2 }" @click="!isGenerating && (duration = 2)" :disabled="isGenerating">2s</button>
+                        <button type="button" class="segmented-btn" :class="{ 'active': duration === 4 }" @click="!isGenerating && (duration = 4)" :disabled="isGenerating">4s</button>
+                        <button type="button" class="segmented-btn" :class="{ 'active': duration === 5 }" @click="!isGenerating && (duration = 5)" :disabled="isGenerating">5s</button>
+                        <button type="button" class="segmented-btn" :class="{ 'active': duration === 8 }" @click="!isGenerating && (duration = 8)" :disabled="isGenerating">8s</button>
+                        <button type="button" class="segmented-btn" :class="{ 'active': duration === 12 }" @click="!isGenerating && (duration = 12)" :disabled="isGenerating">12s</button>
                     </div>
                 </div>
 
-                <!-- Frame Rate FPS -->
+                <!-- Watermark Toggle -->
                 <div class="control-row">
                     <div class="control-label-wrap">
-                        <span>Frame Rate</span>
-                        <span class="badge-val" x-text="framesPerSecond + ' FPS'"></span>
+                        <span>Watermark</span>
+                        <span class="badge-val" x-text="watermark ? 'ON' : 'OFF'"></span>
                     </div>
                     <div class="segmented-group">
-                        <button type="button" class="segmented-btn" :class="{ 'active': framesPerSecond === 24 }" @click="!isGenerating && (framesPerSecond = 24)" :disabled="isGenerating">24 FPS (Cinematic)</button>
-                        <button type="button" class="segmented-btn" :class="{ 'active': framesPerSecond === 16 }" @click="!isGenerating && (framesPerSecond = 16)" :disabled="isGenerating">16 FPS (Smooth)</button>
+                        <button type="button" class="segmented-btn" :class="{ 'active': !watermark }" @click="!isGenerating && (watermark = false)" :disabled="isGenerating">OFF</button>
+                        <button type="button" class="segmented-btn" :class="{ 'active': watermark }" @click="!isGenerating && (watermark = true)" :disabled="isGenerating">ON</button>
+                    </div>
+                </div>
+
+                <!-- Seed -->
+                <div class="control-row">
+                    <div class="control-label-wrap">
+                        <span>Seed</span>
+                        <span class="badge-val" x-text="seed === -1 ? 'Random' : seed"></span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <input
+                            type="number"
+                            class="text-input"
+                            x-model.number="seed"
+                            min="-1"
+                            max="2147483647"
+                            step="1"
+                            :disabled="isGenerating"
+                            style="width: 140px; padding: 8px 12px; font-size: 0.84rem; border-radius: 8px; background: rgba(15,20,34,0.8); border: 1px solid rgba(255,255,255,0.12); color: #f8fafc; outline: none;"
+                            placeholder="-1 = Random"
+                        >
+                        <span style="font-size: 0.74rem; color: var(--text-muted);">-1 = Random seed</span>
+                    </div>
+                </div>
+
+                <!-- Fixed Camera Toggle -->
+                <div class="control-row">
+                    <div class="control-label-wrap">
+                        <span>Fixed Camera</span>
+                        <span class="badge-val" x-text="camerafixed ? 'ON' : 'OFF'"></span>
+                    </div>
+                    <div class="segmented-group">
+                        <button type="button" class="segmented-btn" :class="{ 'active': !camerafixed }" @click="!isGenerating && (camerafixed = false)" :disabled="isGenerating">OFF</button>
+                        <button type="button" class="segmented-btn" :class="{ 'active': camerafixed }" @click="!isGenerating && (camerafixed = true)" :disabled="isGenerating">ON</button>
                     </div>
                 </div>
             </div>
@@ -242,10 +282,9 @@
                 <template x-if="currentGeneration && currentGeneration.status === 'succeeded'">
                     <div style="display: flex; align-items: center; gap: 8px;">
                         <div class="result-meta-tags">
-                            <span class="meta-tag" x-text="currentGeneration.aspect_ratio"></span>
+                            <span class="meta-tag" x-text="currentGeneration.ratio || currentGeneration.aspect_ratio"></span>
                             <span class="meta-tag" x-text="currentGeneration.resolution || '720p'"></span>
-                            <span class="meta-tag" x-text="(currentGeneration.frame_rate || 24) + ' FPS'"></span>
-                            <span class="meta-tag" x-text="(currentGeneration.num_frames || 81) + ' Frames'"></span>
+                            <span class="meta-tag" x-text="(currentGeneration.duration || 5) + 's'"></span>
                         </div>
                         <button type="button" class="btn-action" @click="createNewVideo()" title="Start a fresh video generation" style="padding: 4px 10px; font-size: 0.74rem;">
                             <i data-lucide="plus-circle" style="width: 13px; height: 13px;"></i>

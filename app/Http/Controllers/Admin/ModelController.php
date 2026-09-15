@@ -38,12 +38,12 @@ class ModelController extends Controller
                 'is_configured' => !empty(SiteSetting::get('api_market_key', config('services.magicapi.key', env('API_MARKET_KEY')))),
             ],
             'image_to_video' => [
-                'name' => SiteSetting::get('ai_model_i2v_name', 'Wan 2.2 Image-to-Video (MagicAPI)'),
+                'name' => SiteSetting::get('ai_model_i2v_name', 'BytePlus Seedance 1.0 Pro Fast (Image-to-Video)'),
                 'key' => 'image_to_video',
                 'category' => 'Image-to-Video',
-                'base_url' => SiteSetting::get('ai_model_i2v_url', config('services.magicapi.image_to_video_base_url', env('MAGICAPI_IMAGE_TO_VIDEO_BASE_URL', 'https://prod.api.market/api/v1/magicapi/ultra-fast-text-to-image-image-to-video-api'))),
-                'version' => SiteSetting::get('ai_model_i2v_version', config('services.magicapi.image_to_video_version', env('MAGICAPI_IMAGE_TO_VIDEO_VERSION', 'c92ab4265c9b3b5ea9ac9a87df839ebfd662ee3a820d62c21305bf6501a73fe1'))),
-                'output_format' => 'MP4 (720p / 480p, 81 frames, 24 FPS)',
+                'base_url' => SiteSetting::get('ai_model_i2v_url', config('services.magicapi.seedance_image_to_video_base_url', env('SEEDANCE_IMAGE_TO_VIDEO_BASE_URL', 'https://prod.api.market/api/v1/byteplus/seedance-image-to-video-pro-fast'))),
+                'version' => SiteSetting::get('ai_model_i2v_version', config('services.magicapi.image_to_video_version', env('SEEDANCE_IMAGE_TO_VIDEO_VERSION', 'image-to-video-pro-fast'))),
+                'output_format' => 'MP4 (480p / 720p / 1080p, 2-12s)',
                 'is_configured' => !empty(SiteSetting::get('api_market_key', config('services.magicapi.key', env('API_MARKET_KEY')))),
             ],
         ];
@@ -145,7 +145,7 @@ class ModelController extends Controller
         $urlMap = [
             'image' => SiteSetting::get('ai_model_image_url', config('services.magicapi.base_url', env('MAGICAPI_BASE_URL', 'https://prod.api.market/api/v1/magicapi/cinematic-text-to-image-generator'))),
             'video' => SiteSetting::get('ai_model_video_url', config('services.magicapi.seedance_video_base_url', env('SEEDANCE_VIDEO_BASE_URL', 'https://prod.api.market/api/v1/byteplus/seedance-text-to-video-1-5-pro'))),
-            'image_to_video' => SiteSetting::get('ai_model_i2v_url', config('services.magicapi.image_to_video_base_url', env('MAGICAPI_IMAGE_TO_VIDEO_BASE_URL', 'https://prod.api.market/api/v1/magicapi/ultra-fast-text-to-image-image-to-video-api'))),
+            'image_to_video' => SiteSetting::get('ai_model_i2v_url', config('services.magicapi.seedance_image_to_video_base_url', env('SEEDANCE_IMAGE_TO_VIDEO_BASE_URL', 'https://prod.api.market/api/v1/byteplus/seedance-image-to-video-pro-fast'))),
         ];
 
         $targetUrl = $urlMap[$modelKey] ?? $urlMap['image'];

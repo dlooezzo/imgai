@@ -1694,10 +1694,12 @@ function imageToVideoApp(config = {}) {
         selectedFileSize: '',
         isDragging: false,
         prompt: '',
-        aspectRatio: '16:9',
+        ratio: '16:9',
         resolution: '720p',
-        numFrames: 81,
-        framesPerSecond: 24,
+        duration: 5,
+        watermark: false,
+        seed: -1,
+        camerafixed: false,
         advancedOpen: false,
 
         // Generation State
@@ -1859,10 +1861,12 @@ function imageToVideoApp(config = {}) {
 
             // 4. Reset prompt & parameters to initial defaults
             this.prompt = '';
-            this.aspectRatio = '16:9';
+            this.ratio = '16:9';
             this.resolution = '720p';
-            this.numFrames = 81;
-            this.framesPerSecond = 24;
+            this.duration = 5;
+            this.watermark = false;
+            this.seed = -1;
+            this.camerafixed = false;
             this.advancedOpen = false;
 
             // 5. Reset all generation and workspace state
@@ -1918,10 +1922,12 @@ function imageToVideoApp(config = {}) {
             const formData = new FormData();
             formData.append('image', this.selectedFile);
             formData.append('prompt', this.prompt.trim());
-            formData.append('aspect_ratio', this.aspectRatio);
+            formData.append('ratio', this.ratio);
             formData.append('resolution', this.resolution);
-            formData.append('num_frames', this.numFrames);
-            formData.append('frames_per_second', this.framesPerSecond);
+            formData.append('duration', this.duration);
+            formData.append('watermark', this.watermark);
+            formData.append('seed', this.seed);
+            formData.append('camerafixed', this.camerafixed);
 
             const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
 
@@ -2125,10 +2131,12 @@ function imageToVideoApp(config = {}) {
         remixPrompt(gen) {
             if (!gen) return;
             this.prompt = gen.prompt || '';
-            if (gen.aspect_ratio) this.aspectRatio = gen.aspect_ratio;
+            if (gen.ratio || gen.aspect_ratio) this.ratio = gen.ratio || gen.aspect_ratio;
             if (gen.resolution) this.resolution = gen.resolution;
-            if (gen.num_frames) this.numFrames = gen.num_frames;
-            if (gen.frame_rate) this.framesPerSecond = gen.frame_rate;
+            if (gen.duration) this.duration = gen.duration;
+            if (typeof gen.watermark === 'boolean') this.watermark = gen.watermark;
+            if (typeof gen.seed === 'number') this.seed = gen.seed;
+            if (typeof gen.camerafixed === 'boolean') this.camerafixed = gen.camerafixed;
             this.showToast('Parameters copied for remixing', 'info');
         },
 

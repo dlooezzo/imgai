@@ -4,8 +4,7 @@ namespace App\Jobs;
 
 use App\Models\CreditTransaction;
 use App\Models\VideoGeneration;
-use App\Services\AI\WanImageToVideoService;
-use App\Services\Credits\AiCreditPricingService;
+use App\Services\AI\SeedanceImageToVideoService;
 use App\Services\Credits\CreditService;
 use App\Services\Storage\R2StorageService;
 use Illuminate\Bus\Queueable;
@@ -52,7 +51,7 @@ class PollImageToVideoPredictionJob implements ShouldQueue
         public readonly int $emptyOutputCount = 0,
     ) {}
 
-    public function handle(WanImageToVideoService $aiService, R2StorageService $r2Service): void
+    public function handle(SeedanceImageToVideoService $aiService, R2StorageService $r2Service): void
     {
         $generation = VideoGeneration::find($this->generationId);
 
@@ -76,6 +75,7 @@ class PollImageToVideoPredictionJob implements ShouldQueue
                 'error_message' => 'Missing prediction identifier.',
                 'job_dispatched' => false,
             ]);
+            $this->refundCreditsIfEligible($generation, 'Missing prediction identifier');
 
             return;
         }
@@ -85,10 +85,10 @@ class PollImageToVideoPredictionJob implements ShouldQueue
             Log::warning("[I2V TIMEOUT] Generation {$this->generationId} exceeded maximum poll attempts ({$this->attemptNumber}/".self::MAX_ATTEMPTS.'). Marking as failed.');
             $generation->update([
                 'status' => 'failed',
-                'error_message' => 'Video generation timed out after 10 minutes. Please try again.',
+                'error_message' => 'Provider did not complete the video generation within the polling window.',
                 'job_dispatched' => false,
             ]);
-            $this->refundCreditsIfEligible($generation, 'Video generation timed out after 10 minutes');
+            $this->refundCreditsIfEligible($generation, 'Provider did not complete within the polling window');
 
             return;
         }
@@ -204,9 +204,12 @@ class PollImageToVideoPredictionJob implements ShouldQueue
                 'prediction_id' => $predictionId,
             ]);
 
-            // Re-dispatch anyway on transient network errors
-            self::dispatch($this->generationId, $this->attemptNumber + 1, $this->emptyOutputCount)
-                ->delay(now()->addSeconds(self::POLL_INTERVAL_SECONDS));
+            $generation->update([
+                'status' => 'failed',
+                'error_message' => $e->getMessage(),
+                'job_dispatched' => false,
+            ]);
+            $this->refundCreditsIfEligible($generation, $e->getMessage());
         }
     }
 
@@ -227,7 +230,10 @@ class PollImageToVideoPredictionJob implements ShouldQueue
             return;
         }
 
-        $cost = app(AiCreditPricingService::class)->getImageToVideoCost();
+        $cost = (int) $generation->credits_charged;
+        if ($cost <= 0) {
+            return;
+        }
         try {
             $creditService = app(CreditService::class);
             $creditService->refundCredits(

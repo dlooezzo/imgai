@@ -128,6 +128,27 @@ class R2StorageService
     }
 
     /**
+     * Confirm that the provider can reach the public R2 object URL.
+     *
+     * @throws R2StorageException
+     */
+    public function assertPublicUrl(string $url): void
+    {
+        if (! filter_var($url, FILTER_VALIDATE_URL) || ! str_starts_with($url, 'https://')) {
+            throw new R2StorageException('The uploaded source image does not have a valid public HTTPS URL.');
+        }
+
+        try {
+            $response = Http::connectTimeout(10)->timeout(20)->head($url);
+            if (! $response->successful()) {
+                throw new Exception("Public source image URL returned HTTP {$response->status()}.");
+            }
+        } catch (\Throwable $e) {
+            throw new R2StorageException('The uploaded source image is not publicly accessible to the video provider.');
+        }
+    }
+
+    /**
      * Download the generated video from the provider output URL and store it permanently in Cloudflare R2.
      *
      * @throws R2StorageException

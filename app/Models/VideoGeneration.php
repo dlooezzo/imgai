@@ -20,6 +20,7 @@ class VideoGeneration extends Model
         'source_image_url',
         'source_image_path',
         'aspect_ratio',
+        'ratio',
         'resolution',
         'duration',
         'generate_audio',
