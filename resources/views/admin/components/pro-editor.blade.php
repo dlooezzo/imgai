@@ -13,7 +13,7 @@
     name: '{{ $name }}',
     minHeight: '{{ $minHeight }}',
     placeholder: {{ json_encode($placeholder) }}
-})" class="pro-editor-container">
+})" class="pro-editor-container" :class="{ 'pro-editor-fullscreen': isFullscreen }" @keydown.escape.window="exitFullscreen()">
     
     <!-- Hidden input that actually submits the form data -->
     <textarea :name="name" x-model="content" style="display: none;"></textarea>
@@ -67,6 +67,7 @@
 
             <button type="button" class="btn-micro" @click="exec('undo')" title="Undo (Ctrl+Z)"><i data-lucide="undo" style="width: 13px; height: 13px;"></i></button>
             <button type="button" class="btn-micro" @click="exec('redo')" title="Redo (Ctrl+Y)"><i data-lucide="redo" style="width: 13px; height: 13px;"></i></button>
+            <button type="button" class="btn-micro" @click="toggleFullscreen()" :title="isFullscreen ? 'Exit fullscreen (Esc)' : 'Enter fullscreen'" :aria-label="isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'"><i :data-lucide="isFullscreen ? 'minimize-2' : 'maximize-2'" style="width: 13px; height: 13px;"></i></button>
         </div>
     </div>
 
@@ -155,13 +156,15 @@
              :style="'min-height: ' + minHeight + '; font-family: ' + selectedFont + '; direction: ' + direction + '; text-align: ' + (direction === 'rtl' ? 'right' : 'left') + ';'">
         </div>
 
-        <!-- HTML Source Monospace Textarea Area -->
+        <!-- HTML Source CodeMirror 6 Area with textarea fallback -->
         <div x-show="mode === 'html'" class="pro-editor-html-wrap">
+            <div x-ref="codeEditor" class="pro-editor-code-editor" x-show="codeMirrorReady"></div>
             <textarea x-ref="htmlTextarea"
-                      x-model="content"
-                      @input="syncContentFromHtml()"
+                      :value="content"
+                      @input="syncContentFromHtml($event.target.value)"
                       placeholder="Write or paste your clean HTML structure..."
                       class="pro-editor-html-area"
+                      x-show="!codeMirrorReady"
                       :style="'min-height: ' + minHeight + ';'"></textarea>
         </div>
     </div>
@@ -634,6 +637,138 @@
     gap: 10px;
     margin-top: 16px;
 }
+
+/* Light document surfaces intentionally stay scoped to this editor component. */
+.pro-editor-container {
+    --editor-ink: #172033;
+    --editor-muted: #64748b;
+    --editor-border: #dbe3ee;
+    --editor-accent: #2563eb;
+    background: #f8fafc;
+    border: 1px solid var(--editor-border);
+    border-radius: 10px;
+    box-shadow: 0 12px 30px rgba(15, 23, 42, 0.12);
+    overflow: hidden;
+    position: relative;
+    z-index: 1;
+}
+
+.pro-editor-container.pro-editor-fullscreen {
+    position: fixed;
+    inset: 16px;
+    z-index: 1000;
+    box-shadow: 0 24px 70px rgba(15, 23, 42, 0.28);
+}
+
+body.pro-editor-body-lock { overflow: hidden; }
+
+.pro-editor-top-bar,
+.pro-editor-formatting-toolbar,
+.pro-editor-html-toolbar,
+.pro-editor-footer {
+    background: #f8fafc;
+    border-color: var(--editor-border);
+    color: var(--editor-muted);
+}
+
+.pro-editor-top-bar { padding: 12px 16px; }
+.pro-editor-formatting-toolbar,
+.pro-editor-html-toolbar { padding: 9px 16px; }
+
+.pro-mode-tabs {
+    background: #eaf0f7;
+    border-color: var(--editor-border);
+}
+
+.btn-pro-tab { color: #526176; }
+.btn-pro-tab:hover { color: var(--editor-ink); background: #e2e8f0; }
+.btn-pro-tab.active { background: #ffffff; color: var(--editor-accent); border-color: #bfdbfe; box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08); }
+
+.pro-select {
+    background: #ffffff !important;
+    border-color: var(--editor-border) !important;
+    color: var(--editor-ink) !important;
+}
+
+.pro-toolbar-sep { color: #cbd5e1; }
+.pro-editor-formatting-toolbar .btn-micro,
+.pro-editor-html-toolbar .btn-micro,
+.pro-right-controls .btn-micro {
+    color: #475569;
+    background: transparent;
+    border-color: transparent;
+}
+
+.pro-editor-formatting-toolbar .btn-micro:hover,
+.pro-editor-html-toolbar .btn-micro:hover,
+.pro-right-controls .btn-micro:hover {
+    color: var(--editor-accent);
+    background: #eaf2ff;
+    border-color: #bfdbfe;
+}
+
+.pro-editor-canvas-wrap { background: #ffffff; min-height: 420px; }
+.pro-editor-content-area {
+    background: #ffffff;
+    color: var(--editor-ink);
+    max-width: 900px;
+    margin: 0 auto;
+    width: 100%;
+    font-family: Georgia, 'Times New Roman', serif !important;
+    font-size: 1.06rem;
+    line-height: 1.8;
+    padding: 42px clamp(22px, 6vw, 76px);
+}
+
+.pro-editor-content-area:focus { box-shadow: inset 0 0 0 2px rgba(37, 99, 235, 0.12); }
+.pro-editor-content-area:empty:before { color: #94a3b8; }
+.pro-editor-content-area h1,
+.pro-editor-content-area h2,
+.pro-editor-content-area h3,
+.pro-editor-content-area h4 { color: #172033; }
+.pro-editor-content-area h2 { color: #1e3a8a; }
+.pro-editor-content-area h3 { color: #334155; }
+.pro-editor-content-area blockquote { background: #f1f5f9; color: #475569; border-left-color: #2563eb; }
+.pro-editor-content-area pre { background: #f1f5f9; border-color: var(--editor-border); color: #1d4ed8; }
+.pro-editor-content-area code { background: #eef2ff; color: #4338ca; }
+.pro-editor-content-area figcaption { color: #64748b; }
+.pro-editor-content-area hr.article-divider { border-color: #cbd5e1; }
+
+.pro-editor-html-wrap { background: #f8fafc; min-height: 420px; }
+.pro-editor-code-editor,
+.pro-editor-html-area {
+    min-height: 420px;
+    width: 100%;
+    box-sizing: border-box;
+    background: #ffffff;
+    color: #172033;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.88rem;
+    line-height: 1.65;
+}
+
+.pro-editor-code-editor { overflow: hidden; }
+.pro-editor-code-editor .cm-editor { min-height: 420px; height: 100%; outline: none; }
+.pro-editor-code-editor .cm-scroller { overflow: auto; font-family: 'JetBrains Mono', monospace; }
+.pro-editor-code-editor .cm-activeLine { background: #f8fafc; }
+.pro-editor-code-editor .cm-activeLineGutter { background: #eff6ff; color: #2563eb; }
+.pro-editor-code-editor .cm-gutters { background: #f8fafc; border-right: 1px solid var(--editor-border); color: #94a3b8; }
+.pro-editor-html-area { padding: 24px 28px; border: 0; resize: vertical; outline: none; }
+.pro-editor-html-area:focus { box-shadow: inset 0 0 0 2px rgba(37, 99, 235, 0.16); }
+
+.pro-editor-footer { border-top-color: var(--editor-border); }
+.pro-editor-footer strong { color: #334155 !important; }
+.pro-status-live { color: #059669; }
+
+@media (max-width: 720px) {
+    .pro-editor-top-bar { align-items: stretch; }
+    .pro-mode-tabs, .pro-center-controls, .pro-right-controls { width: 100%; }
+    .pro-center-controls .pro-select { flex: 1; min-width: 0; }
+    .pro-editor-content-area { padding: 28px 20px; }
+    .pro-editor-footer { align-items: flex-start; flex-direction: column; gap: 6px; }
+    .pro-footer-stats { flex-wrap: wrap; gap: 8px 12px; }
+    .pro-editor-container.pro-editor-fullscreen { inset: 0; border-radius: 0; }
+}
 </style>
 
 <script>
@@ -648,6 +783,10 @@ window.proContentEditor = function(config) {
         mode: 'visual',
         direction: 'ltr',
         selectedFont: "'Plus Jakarta Sans', sans-serif",
+        isFullscreen: false,
+        codeMirrorReady: false,
+        codeMirrorLoading: false,
+        codeMirrorView: null,
         
         // Image Modal State
         showImageModal: false,
@@ -667,6 +806,7 @@ window.proContentEditor = function(config) {
                         this.$refs.visualEditor.innerHTML = '';
                     }
                 }
+                this.initCodeMirror();
                 if (window.lucide) {
                     window.lucide.createIcons();
                 }
@@ -686,9 +826,12 @@ window.proContentEditor = function(config) {
                 this.syncContentFromVisual();
                 this.mode = 'html';
                 this.$nextTick(() => {
-                    if (this.$refs.htmlTextarea) {
-                        this.$refs.htmlTextarea.focus();
+                    this.initCodeMirror();
+                    if (this.codeMirrorView) {
+                        this.setSourceValue(this.content);
+                        this.codeMirrorView.focus();
                     }
+                    else if (this.$refs.htmlTextarea) this.$refs.htmlTextarea.focus();
                 });
             } else {
                 this.mode = 'visual';
@@ -721,9 +864,84 @@ window.proContentEditor = function(config) {
         },
 
         syncContentFromHtml() {
-            if (this.$refs.visualEditor) {
-                this.$refs.visualEditor.innerHTML = this.content || '';
+            const source = arguments.length ? arguments[0] : this.getSourceValue();
+            this.content = source || '';
+            if (this.$refs.visualEditor) this.$refs.visualEditor.innerHTML = this.content;
+        },
+
+        async initCodeMirror() {
+            if (this.codeMirrorReady || !this.$refs.codeEditor || this.codeMirrorLoading) return;
+            this.codeMirrorLoading = true;
+
+            try {
+                const [{ basicSetup }, { html }, { EditorState }, { EditorView, keymap }, { defaultKeymap, indentWithTab }, { searchKeymap }] = await Promise.all([
+                    import('https://esm.sh/codemirror@6.0.1'),
+                    import('https://esm.sh/@codemirror/lang-html@6.4.9'),
+                    import('https://esm.sh/@codemirror/state@6.5.2'),
+                    import('https://esm.sh/@codemirror/view@6.36.5'),
+                    import('https://esm.sh/@codemirror/commands@6.8.1'),
+                    import('https://esm.sh/@codemirror/search@6.5.10'),
+                ]);
+
+                const updateListener = EditorView.updateListener.of((update) => {
+                    if (update.docChanged) {
+                        this.content = update.state.doc.toString();
+                        if (this.$refs.htmlTextarea) this.$refs.htmlTextarea.value = this.content;
+                    }
+                });
+
+                this.codeMirrorView = new EditorView({
+                    state: EditorState.create({
+                        doc: this.content || '',
+                        extensions: [
+                            basicSetup,
+                            html(),
+                            keymap.of([...defaultKeymap, ...searchKeymap, indentWithTab]),
+                            updateListener,
+                        ],
+                    }),
+                    parent: this.$refs.codeEditor,
+                });
+                this.codeMirrorReady = true;
+            } catch (error) {
+                console.warn('CodeMirror 6 could not be loaded; using the HTML source fallback.', error);
+            } finally {
+                this.codeMirrorLoading = false;
             }
+        },
+
+        getSourceValue() {
+            return this.codeMirrorView ? this.codeMirrorView.state.doc.toString() : (this.$refs.htmlTextarea?.value || this.content || '');
+        },
+
+        setSourceValue(value, selectionStart = null, selectionEnd = null) {
+            this.content = value;
+            if (this.codeMirrorView) {
+                this.codeMirrorView.dispatch({
+                    changes: { from: 0, to: this.codeMirrorView.state.doc.length, insert: value },
+                    selection: selectionStart === null ? undefined : { anchor: selectionStart, head: selectionEnd ?? selectionStart },
+                });
+            } else if (this.$refs.htmlTextarea) {
+                this.$refs.htmlTextarea.value = value;
+                if (selectionStart !== null) {
+                    this.$refs.htmlTextarea.focus();
+                    this.$refs.htmlTextarea.setSelectionRange(selectionStart, selectionEnd ?? selectionStart);
+                }
+            }
+        },
+
+        toggleFullscreen() {
+            this.isFullscreen = !this.isFullscreen;
+            document.body.classList.toggle('pro-editor-body-lock', this.isFullscreen);
+            this.$nextTick(() => {
+                if (this.codeMirrorView) this.codeMirrorView.requestMeasure();
+            });
+        },
+
+        exitFullscreen() {
+            if (!this.isFullscreen) return;
+            this.isFullscreen = false;
+            document.body.classList.remove('pro-editor-body-lock');
         },
 
         exec(command, value = null) {
@@ -825,30 +1043,20 @@ window.proContentEditor = function(config) {
         },
 
         insertHtmlTag(openTag, closeTag) {
+            const source = this.getSourceValue();
             const textarea = this.$refs.htmlTextarea;
-            if (!textarea) return;
-            const start = textarea.selectionStart;
-            const end = textarea.selectionEnd;
-            const selectedText = this.content.substring(start, end);
+            const start = this.codeMirrorView ? this.codeMirrorView.state.selection.main.from : (textarea?.selectionStart ?? source.length);
+            const end = this.codeMirrorView ? this.codeMirrorView.state.selection.main.to : (textarea?.selectionEnd ?? start);
+            const selectedText = source.substring(start, end);
             const replacement = openTag + selectedText + closeTag;
-            this.content = this.content.substring(0, start) + replacement + this.content.substring(end);
-            this.syncContentFromHtml();
-            this.$nextTick(() => {
-                textarea.focus();
-                textarea.setSelectionRange(start + openTag.length, start + openTag.length + selectedText.length);
-            });
+            this.setSourceValue(source.substring(0, start) + replacement + source.substring(end), start + openTag.length, start + openTag.length + selectedText.length);
         },
 
         insertHtmlText(text) {
+            const source = this.getSourceValue();
             const textarea = this.$refs.htmlTextarea;
-            if (!textarea) return;
-            const start = textarea.selectionStart;
-            this.content = this.content.substring(0, start) + text + this.content.substring(start);
-            this.syncContentFromHtml();
-            this.$nextTick(() => {
-                textarea.focus();
-                textarea.setSelectionRange(start + text.length, start + text.length);
-            });
+            const start = this.codeMirrorView ? this.codeMirrorView.state.selection.main.head : (textarea?.selectionStart ?? source.length);
+            this.setSourceValue(source.substring(0, start) + text + source.substring(start), start + text.length, start + text.length);
         },
 
         // Image Modal Actions
@@ -936,7 +1144,8 @@ window.proContentEditor = function(config) {
                         this.insertHtmlText(figureHtml + '\n');
                     }
 
-                    this.syncContentFromVisual();
+                    if (this.mode === 'visual') this.syncContentFromVisual();
+                    else this.setSourceValue(this.getSourceValue());
                     this.showImageModal = false;
                 } else {
                     this.modalError = data.message || 'Image upload to Cloudflare R2 failed.';
