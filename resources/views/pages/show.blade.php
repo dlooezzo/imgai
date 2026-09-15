@@ -27,6 +27,10 @@
             min-height: 100vh;
             display: flex;
             flex-direction: column;
+            width: 100%;
+            max-width: 100%;
+            overflow-x: hidden;
+            box-sizing: border-box;
             background-color: var(--bg-canvas, #07090e);
             color: var(--text-primary, #f8fafc);
             font-family: var(--font-sans, 'Inter', sans-serif);
@@ -44,7 +48,15 @@
             position: sticky;
             top: 0;
             z-index: 50;
+            box-sizing: border-box;
+            min-width: 0;
         }
+
+        .public-navbar > * { min-width: 0; }
+        .public-navbar .header-brand { flex: 0 1 auto; min-width: 0; }
+        .public-navbar .brand-info { min-width: 0; }
+        .public-navbar .brand-title,
+        .public-navbar .brand-subtitle { overflow-wrap: anywhere; }
 
         .public-nav-links {
             display: flex;
@@ -90,6 +102,7 @@
             flex: 1;
             max-width: 880px;
             width: 100%;
+            box-sizing: border-box;
             margin: 0 auto;
             padding: 48px 24px 80px;
         }
@@ -140,7 +153,42 @@
             line-height: 1.75;
             color: #cbd5e1;
             box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
+            box-sizing: border-box;
+            min-width: 0;
+            overflow-wrap: anywhere;
+            word-break: break-word;
         }
+
+        .public-body-content > * { max-width: 100%; box-sizing: border-box; }
+        .public-body-content img,
+        .public-body-content video,
+        .public-body-content audio,
+        .public-body-content canvas,
+        .public-body-content svg {
+            display: block;
+            width: auto;
+            max-width: 100%;
+            height: auto;
+        }
+
+        .public-body-content figure { max-width: 100%; overflow: hidden; }
+        .public-body-content table {
+            display: block;
+            width: 100%;
+            max-width: 100%;
+            overflow-x: auto;
+            border-collapse: collapse;
+        }
+        .public-body-content pre { max-width: 100%; overflow-x: auto; white-space: pre; }
+        .public-body-content iframe,
+        .public-body-content embed,
+        .public-body-content object {
+            display: block;
+            width: 100%;
+            max-width: 100%;
+            border: 0;
+        }
+        .public-body-content a { overflow-wrap: anywhere; word-break: break-word; }
 
         .public-body-content h2 {
             font-size: 1.5rem;
@@ -246,17 +294,54 @@
 
         @media (max-width: 768px) {
             .public-navbar {
+                height: auto;
+                min-height: 64px;
                 padding: 0 16px;
+                gap: 10px;
+                flex-wrap: wrap;
+                align-content: center;
             }
             .public-nav-links {
                 display: none;
             }
+            .public-navbar > div:last-child {
+                flex: 0 1 auto;
+                margin-left: auto;
+                gap: 6px !important;
+                flex-wrap: wrap;
+                justify-content: flex-end;
+            }
+            .public-navbar > div:last-child .btn-studio-secondary,
+            .public-navbar > div:last-child .btn-studio-primary {
+                padding: 8px !important;
+                min-width: 36px;
+                justify-content: center;
+            }
+            .public-navbar > div:last-child .btn-studio-secondary span,
+            .public-navbar > div:last-child .btn-studio-primary span {
+                display: none;
+            }
             .public-body-content {
-                padding: 24px 20px;
+                padding: 28px 16px;
+                border-radius: 14px;
+                overflow: hidden;
             }
+            .public-content-container { padding: 32px 16px 56px; }
+            .public-header-card { margin-bottom: 28px; }
             .public-page-title {
-                font-size: 2rem;
+                font-size: clamp(1.8rem, 8vw, 2rem);
+                line-height: 1.2;
+                overflow-wrap: anywhere;
             }
+            .public-page-excerpt { font-size: 1rem; }
+            .public-body-content h2 { font-size: 1.3rem; margin-top: 26px; }
+            .public-body-content h3 { font-size: 1.12rem; }
+            .public-body-content h4 { font-size: 1rem; }
+            .public-body-content blockquote { padding: 12px 14px; margin: 20px 0; }
+            .public-body-content ul,
+            .public-body-content ol { padding-left: 22px; }
+            .public-footer { padding: 28px 16px; }
+            .public-footer > div { max-width: 100%; min-width: 0; overflow-wrap: anywhere; }
         }
     </style>
 </head>
