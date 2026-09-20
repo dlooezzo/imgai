@@ -1,5 +1,9 @@
 @extends('layouts.app')
 
+@php
+    $hideMobileBottomNav = true;
+@endphp
+
 @section('title', 'Pricing Plans & Subscriptions — ' . config('app.name', 'IMGAI'))
 
 @section('content')
@@ -11,6 +15,9 @@
    PRICING PAGE STYLES
    Clean, robust classes to prevent Alpine.js :style string hydration clashes
    ========================================================================== */
+.app-body.app-body--no-dock {
+    display: block !important;
+}
 .pricing-page-wrapper {
     min-height: 100vh;
     width: 100%;

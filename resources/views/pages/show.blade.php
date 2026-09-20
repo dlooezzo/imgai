@@ -4,6 +4,9 @@
 
 @section('content')
 <style>
+    .app-body.app-body--no-dock {
+        display: block !important;
+    }
     .public-page-scroll-area {
         flex: 1;
         overflow-y: auto;
