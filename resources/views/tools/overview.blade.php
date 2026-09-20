@@ -395,4 +395,5 @@
             </div>
         </div>
     </section>
+    @include('layouts.footer')
 </div>

@@ -755,4 +755,5 @@ function pricingManager(config) {
     };
 }
 </script>
+@include('layouts.footer')
 @endsection

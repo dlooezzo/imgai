@@ -139,11 +139,12 @@
         </header>
 
         <!-- Main Body Area -->
-        <div class="app-body">
+        <div class="app-body {{ !empty($hideMobileBottomNav) ? 'app-body--no-dock' : '' }}">
             @yield('content')
         </div>
 
-        <!-- Mobile Bottom Navigation Dock (Visible only on mobile screens <= 768px) -->
+        <!-- Mobile Bottom Navigation Dock (Visible only on mobile screens <= 768px, hidden on public/CMS pages) -->
+        @if (empty($hideMobileBottomNav))
         <nav class="mobile-bottom-nav">
             <a href="{{ route('tools.overview') }}" class="mobile-nav-item {{ request()->routeIs('tools.overview') ? 'active' : '' }}" title="Overview">
                 <i data-lucide="home" class="mobile-nav-icon"></i>
@@ -173,6 +174,7 @@
                 <span class="mobile-nav-label">{{ Auth::check() ? 'Profile' : 'Account' }}</span>
             </a>
         </nav>
+        @endif
 
         <!-- Mobile Slide-out Drawer (Clean Full-Viewport Modal Overlay) -->
         <div class="mobile-drawer-backdrop" x-show="mobileMenuOpen" x-cloak @click="mobileMenuOpen = false" @keydown.escape.window="mobileMenuOpen = false">
