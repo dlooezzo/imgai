@@ -113,7 +113,7 @@
                     </a>
                     @foreach ($appNavPages as $navItem)
                         @if ($navItem->slug !== 'pricing')
-                            <a href="{{ url($navItem->slug) }}" class="header-cms-link {{ request()->is($navItem->slug) ? 'active' : '' }}" style="color: #94a3b8; text-decoration: none; font-size: 0.85rem; font-weight: 500; transition: color 0.15s;">
+                            <a href="{{ url($navItem->slug) }}" class="header-cms-link {{ request()->is($navItem->slug) || (request()->routeIs('pages.show') && request()->segment(1) === $navItem->slug) ? 'active' : '' }}" style="color: #94a3b8; text-decoration: none; font-size: 0.85rem; font-weight: 500; transition: color 0.15s;">
                                 {{ $navItem->nav_label }}
                             </a>
                         @endif
@@ -232,7 +232,7 @@
 
                         @foreach ($appNavPages as $navItem)
                             @if ($navItem->slug !== 'pricing')
-                                <a href="{{ url($navItem->slug) }}" class="mobile-drawer-link {{ request()->is($navItem->slug) ? 'active' : '' }}" @click="mobileMenuOpen = false">
+                                <a href="{{ url($navItem->slug) }}" class="mobile-drawer-link {{ request()->is($navItem->slug) || (request()->routeIs('pages.show') && request()->segment(1) === $navItem->slug) ? 'active' : '' }}" @click="mobileMenuOpen = false">
                                     <i data-lucide="file-text" style="width: 18px; height: 18px;"></i>
                                     <span>{{ $navItem->nav_label }}</span>
                                 </a>
