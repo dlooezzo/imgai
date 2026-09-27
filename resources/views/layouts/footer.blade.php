@@ -36,7 +36,5 @@
 
     <!-- Footer Links -->
     <div style="display: flex; gap: 20px; font-size: 0.82rem;">
-        <a href="{{ url('terms') }}" style="color: #94a3b8; text-decoration: none; transition: color 0.15s;" onmouseover="this.style.color='#f8fafc'" onmouseout="this.style.color='#94a3b8'">Terms</a>
-        <a href="{{ url('privacy') }}" style="color: #94a3b8; text-decoration: none; transition: color 0.15s;" onmouseover="this.style.color='#f8fafc'" onmouseout="this.style.color='#94a3b8'">Privacy</a>
     </div>
 </footer>

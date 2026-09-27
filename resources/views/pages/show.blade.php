@@ -673,8 +673,6 @@
                     </a>
                 @endforeach
             @endif
-            <a href="{{ url('terms') }}" style="color: #94a3b8; text-decoration: none;">Terms</a>
-            <a href="{{ url('privacy') }}" style="color: #94a3b8; text-decoration: none;">Privacy</a>
         </div>
     </footer>
 
