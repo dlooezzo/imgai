@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\SiteSetting;
 use Exception;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
